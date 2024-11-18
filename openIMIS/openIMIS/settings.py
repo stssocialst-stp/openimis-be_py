@@ -450,7 +450,7 @@ CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "amqp://rabitmq")
 if 'CELERY_RESULT_BACKEND' in os.environ:
     CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND")
 
-if  'CACHE_BACKEND' in os.environ and 'CACHE_URL' in os.environ:
+if 'CACHE_BACKEND' in os.environ and 'CACHE_URL' in os.environ:
     CACHE_BACKEND = os.environ.get('CACHE_BACKEND')
     CACHE_URL = os.environ.get("CACHE_URL")
     CACHE_OPTIONS = os.environ.get("CACHE_OPTIONS", None)
@@ -460,7 +460,7 @@ else:
     CACHE_BACKEND = 'django.core.cache.backends.locmem.LocMemCache'
     CACHE_URL = None
     CACHE_OPTIONS = None
-    
+
 CACHE_PARAM = {}
 CACHE_PARAM['BACKEND'] = CACHE_BACKEND
 if CACHE_URL:
@@ -469,7 +469,6 @@ if CACHE_URL:
 if CACHE_OPTIONS:
     CACHE_PARAM['OPTIONS'] = CACHE_OPTIONS
 
-    
 CACHES = {
     'default': {
         **CACHE_PARAM,
