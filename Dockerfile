@@ -1,8 +1,13 @@
 FROM python:3.10-buster As builder
 ENV PYTHONUNBUFFERED 1
 ARG DB_DEFAULT
+RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list \
+ && sed -i 's|security.debian.org|archive.debian.org|g' /etc/apt/sources.list \
+ && sed -i '/buster-updates/d' /etc/apt/sources.list
+RUN apt-get update \
+ && apt-get install -y apt-transport-https ca-certificates gettext unixodbc-dev \
+ && apt-get upgrade -y
 
-RUN apt-get update && apt-get install -y apt-transport-https ca-certificates gettext unixodbc-dev && apt-get upgrade -y
 RUN apt-get install -y -f python3-dev
 RUN apt-get -y install git
 
@@ -32,7 +37,7 @@ WORKDIR /openimis-be
 ARG OPENIMIS_CONF_JSON
 ENV OPENIMIS_CONF_JSON=${OPENIMIS_CONF_JSON}
 WORKDIR /openimis-be/script
-RUN python modules-requirements.py ../openimis.json > modules-requirements.txt && pip install -r modules-requirements.txt 
+RUN python modules-requirements.py ../openimis.json > modules-requirements.txt && pip install -r modules-requirements.txt
 WORKDIR /openimis-be/openIMIS
 
 # Compile messages (Exclude zh_Hans)
