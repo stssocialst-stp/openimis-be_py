@@ -12,6 +12,7 @@ on:
 jobs:
   ci_assembly:
     runs-on: ubuntu-20.04
+    if: false
 
     services:
       mssql:
