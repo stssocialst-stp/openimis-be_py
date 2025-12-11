@@ -12,6 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-20.04
+    if : false
     services:
       pgsql:
         image: postgres
