@@ -1,9 +1,7 @@
-FROM python:3.10-buster As builder
+FROM python:3.11-bullseye As builder
 ENV PYTHONUNBUFFERED 1
 ARG DB_DEFAULT
-RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list \
- && sed -i 's|security.debian.org|archive.debian.org|g' /etc/apt/sources.list \
- && sed -i '/buster-updates/d' /etc/apt/sources.list
+## No need to update sources.list for bullseye
 RUN apt-get update \
  && apt-get install -y apt-transport-https ca-certificates gettext unixodbc-dev \
  && apt-get upgrade -y
@@ -12,7 +10,7 @@ RUN apt-get install -y -f python3-dev
 RUN apt-get -y install git
 
 RUN test "$DB_DEFAULT" != "postgresql" && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - || :
-RUN test "$DB_DEFAULT" != "postgresql" && curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list || :
+RUN test "$DB_DEFAULT" != "postgresql" && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list || :
 RUN test "$DB_DEFAULT" != "postgresql" && apt-get update || :
 RUN test "$DB_DEFAULT" != "postgresql" && ACCEPT_EULA=Y apt-get install -y msodbcsql17 mssql-tools || :
 
