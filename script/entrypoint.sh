@@ -24,6 +24,25 @@ init(){
   fi
 }
 
+start_wsgi() {
+  init
+  echo "Iniciando Django WSGI com Gunicorn..."
+  SERVER_IP="${WSGI_IP:-0.0.0.0}"
+  SERVER_PORT="${WSGI_PORT:-8000}"
+  SERVER_APPLICATION="${WSGI_APPLICATION:-openIMIS.wsgi}"
+  SERVER_WORKERS="${WSGI_WORKERS:-4}"
+
+  gunicorn -b "$SERVER_IP:$SERVER_PORT" -w $SERVER_WORKERS "$SERVER_APPLICATION" &
+  sleep 3
+
+  # Request dummy para "acordar" a API
+  echo "Realizando request interno para acordar a API..."
+  curl -s -o /dev/null "http://$SERVER_IP:$SERVER_PORT/api/graphql"
+  
+  # Espera gunicorn continuar rodando
+  wait
+}
+
 #export PYTHONPATH="/opt/app:$PYTHONPATH"
 if [ -z "$DJANGO_SETTINGS_MODULE" ]; then
   export DJANGO_SETTINGS_MODULE=openIMIS.settings
@@ -31,9 +50,7 @@ fi
 
 case "$1" in
   "start" )
-    init
-    echo "Starting Django..."
-    python server.py
+    start_wsgi
   ;;
   "start_asgi" )
     init
