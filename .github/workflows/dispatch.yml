@@ -1,8 +1,5 @@
-name: Trigger CD in Orchestrator
+name: trigger cd in orchestrator
 on:
-  push:
-    branches:
-      - stp-changes
   workflow_run:
     workflows: ["create daily docker image on develop"]
     types:
