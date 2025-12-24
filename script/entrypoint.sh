@@ -17,10 +17,62 @@ show_help() {
 }
 
 init(){
-  if [ "${DJANGO_MIGRATE,,}" == "true" ] || [ -z "$SCHEDULER_AUTOSTART" ]; then
-        echo "Migrating..."
-        python manage.py migrate
+  # Install PEP+ module if it exists (for development)
+  if [ -d "/app/openimis-be-pep_plus_py" ]; then
+    echo "Installing PEP+ module..."
+    pip install -e /app/openimis-be-pep_plus_py
+
+    # Add pep_plus to openimis config if not already there
+    CONF_FILE="${OPENIMIS_CONF_JSON:-/openimis-be/openimis.json}"
+    echo "Adding pep_plus to $CONF_FILE..."
+    python3 << EOF
+import json
+import sys
+
+conf_file = "$CONF_FILE"
+try:
+    with open(conf_file, 'r') as f:
+        config = json.load(f)
+
+    # Check if pep_plus already exists
+    module_names = [m['name'] for m in config.get('modules', [])]
+    if 'pep_plus' not in module_names:
+        # Find position before signal_binding (which should be last)
+        insert_pos = len(config['modules'])
+        config['modules'].insert(insert_pos, {
+            "name": "pep_plus",
+            "pip": "-e /app/openimis-be-pep_plus_py"
+        })
+
+        with open(conf_file, 'w') as f:
+            json.dump(config, f, indent=2)
+        print("✅ pep_plus added to configuration")
+    else:
+        print("ℹ️ pep_plus already in configuration")
+except Exception as e:
+    print(f"⚠️ Could not modify config: {e}")
+    sys.exit(0)  # Continue anyway
+EOF
+  fi
+
+  # Run migrations FIRST (before Django apps initialize)
+  if [ "${DJANGO_MIGRATE,,}" == "true" ] || [ "${SCHEDULER_AUTOSTART,,}" == "false" ]; then
+        echo "Running migrations (standalone mode to avoid scheduler)..."
+        python /openimis-be/script/run_migrations.py || {
+          echo "⚠️ Standalone migration failed, trying standard migration..."
+          python manage.py migrate --noinput
+        }
+        echo "Migrations completed. Scheduler will start on next restart."
         export SCHEDULER_AUTOSTART=True
+  fi
+
+  # Compile messages and collect static files (moved from Dockerfile)
+  if [ ! -f /openimis-be/.init_done ]; then
+    echo "Compiling messages..."
+    python manage.py compilemessages -x zh_Hans || echo "Warning: compilemessages failed"
+    echo "Collecting static files..."
+    python manage.py collectstatic --clear --noinput || echo "Warning: collectstatic failed"
+    touch /openimis-be/.init_done
   fi
 }
 

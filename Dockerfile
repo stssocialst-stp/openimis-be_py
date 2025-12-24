@@ -33,13 +33,11 @@ COPY . /openimis-be
 WORKDIR /openimis-be
 
 ARG OPENIMIS_CONF_JSON
-ENV OPENIMIS_CONF_JSON=${OPENIMIS_CONF_JSON}
+ENV OPENIMIS_CONF_JSON=${OPENIMIS_CONF_JSON:-openimis.json}
 WORKDIR /openimis-be/script
-RUN python modules-requirements.py ../openimis.json > modules-requirements.txt && pip install -r modules-requirements.txt
+RUN python modules-requirements.py ../${OPENIMIS_CONF_JSON} > modules-requirements.txt && pip install -r modules-requirements.txt
 WORKDIR /openimis-be/openIMIS
 
-# Compile messages (Exclude zh_Hans)
-RUN NO_DATABASE=True python manage.py compilemessages -x zh_Hans
-RUN NO_DATABASE=True python manage.py collectstatic --clear --noinput
+# Note: compilemessages and collectstatic moved to entrypoint.sh to avoid scheduler issues
 
 ENTRYPOINT ["/openimis-be/script/entrypoint.sh"]

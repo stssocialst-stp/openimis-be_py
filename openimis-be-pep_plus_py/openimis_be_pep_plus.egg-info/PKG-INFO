@@ -1,0 +1,71 @@
+Metadata-Version: 2.4
+Name: openimis-be-pep_plus
+Version: 1.0.0
+Summary: The openIMIS Backend PEP+ (Programa de Educação Positiva) module.
+Home-page: https://openimis.org/
+Author: openIMIS Team
+Author-email: info@openimis.org
+License: GNU AGPL v3
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Django
+Classifier: Framework :: Django :: 4.2
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU Affero General Public License v3
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.11
+Description-Content-Type: text/markdown
+Requires-Dist: django
+Requires-Dist: django-db-signals
+Requires-Dist: djangorestframework
+Requires-Dist: openimis-be-core
+Requires-Dist: openimis-be-location
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license
+Dynamic: requires-dist
+Dynamic: summary
+
+# openIMIS Backend PEP+ Module
+
+## Description
+
+This module implements the PEP+ (Programa de Educação Positiva) system for managing educational sessions with families, including:
+
+- Session planning (Ferramenta 1)
+- Attendance registration (Ferramenta 2)
+- Session execution tracking (Ferramenta 3)
+- Session supervision (Ferramenta 4)
+- District bimonthly reports (Ferramenta 5)
+- Bimonthly supervision meetings (Ferramenta 6)
+- Bimonthly supervision reports (Ferramenta 7)
+
+## Features
+
+- Full CRUD operations via GraphQL API
+- Integration with core, location, and individual modules
+- Business rule validations
+- Comprehensive reporting
+- Audit trail support
+
+## Installation
+
+```bash
+pip install -e ../openimis-be-pep_plus_py/
+```
+
+Add to openimis.json:
+```json
+{
+  "name": "pep_plus",
+  "pip": "-e ../openimis-be-pep_plus_py/"
+}
+```
+
+## License
+
+GNU AGPL v3
