@@ -21,6 +21,12 @@ script/config.py
 **/images/insurees
 openimis-dev.json
 
+# Local development files
+.claude/
+local_settings.py
+response.json
+nul
+
 # Except for the runConfigurations folder
 !.idea/runConfigurations
 

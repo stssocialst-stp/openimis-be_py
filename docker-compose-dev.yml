@@ -1,0 +1,160 @@
+version: "3.7"
+
+services:
+  # PostgreSQL Database
+  db:
+    container_name: ${PROJECT_NAME:-openimis}-db
+    image: ghcr.io/openimis/openimis-pgsql:${DB_TAG:-develop}
+    environment:
+      - POSTGRES_PASSWORD=${PSQL_DB_PASSWORD}
+      - POSTGRES_DB=${PSQL_DB_NAME}
+      - POSTGRES_USER=${PSQL_DB_USER}
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', "${PSQL_DB_USER}", '-d', "${PSQL_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - database:/var/lib/postgresql/data
+    restart: always
+    ports:
+      - "5432:5432"
+    networks:
+      - openimis-network
+
+  # MS SQL Database (opcional, se você usar MSSQL)
+  db-mssql:
+    container_name: ${PROJECT_NAME:-openimis}-mssql
+    image: ghcr.io/openimis/openimis-mssql:${DB_TAG:-develop}
+    restart: always
+    user: root
+    environment:
+      - DB_PASSWORD=${MSSQL_DB_PASSWORD}
+      - SA_PASSWORD=${MSSQL_DB_PASSWORD}
+      - DB_NAME=${MSSQL_DB_NAME}
+      - DB_USER=${MSSQL_DB_USER}
+      - ACCEPT_EULA=Y
+      - INIT_MODE=demo
+    healthcheck:
+      test: "bash /app/healthcheck.sh"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 100s
+    volumes:
+      - database-mssql:/var/opt/mssql/data
+    ports:
+      - "1433:1433"
+    networks:
+      - openimis-network
+    profiles:
+      - mssql  # Only start if explicitly requested
+
+  # Backend Django + PEP+ Module
+  backend:
+    container_name: ${PROJECT_NAME:-openimis}-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - DB_DEFAULT=${DB_DEFAULT:-postgresql}
+        - OPENIMIS_CONF_JSON=openimis-dev.json
+    environment:
+      # Mode
+      - MODE=${MODE:-DEV}
+      - DEBUG=True
+
+      # openIMIS configuration
+      - OPENIMIS_CONF_JSON=/openimis-be/openimis-dev.json
+
+      # Database PostgreSQL
+      - DB_DEFAULT=${DB_DEFAULT:-postgresql}
+      - DB_ENGINE=${PSQL_DB_ENGINE}
+      - DB_HOST=db
+      - DB_PORT=${PSQL_DB_PORT}
+      - DB_NAME=${PSQL_DB_NAME}
+      - DB_USER=${PSQL_DB_USER}
+      - DB_PASSWORD=${PSQL_DB_PASSWORD}
+      - DB_TEST_NAME=${DB_TEST_NAME}
+
+      # PSQL specific
+      - PSQL_DB_ENGINE=${PSQL_DB_ENGINE}
+      - PSQL_DB_HOST=db
+      - PSQL_DB_PORT=${PSQL_DB_PORT}
+      - PSQL_DB_NAME=${PSQL_DB_NAME}
+      - PSQL_DB_USER=${PSQL_DB_USER}
+      - PSQL_DB_PASSWORD=${PSQL_DB_PASSWORD}
+
+      # MSSQL specific (if used)
+      - MSSQL_DB_ENGINE=${MSSQL_DB_ENGINE}
+      - MSSQL_DB_HOST=db-mssql
+      - MSSQL_DB_PORT=${MSSQL_DB_PORT}
+      - MSSQL_DB_NAME=${MSSQL_DB_NAME}
+      - MSSQL_DB_USER=${MSSQL_DB_USER}
+      - MSSQL_DB_PASSWORD=${MSSQL_DB_PASSWORD}
+
+      # Django settings
+      - SITE_ROOT=${SITE_ROOT:-api}
+      - DJANGO_MIGRATE=${DJANGO_MIGRATE:-True}
+      - DJANGO_LOG_LEVEL=DEBUG
+      - DJANGO_LOG_HANDLER=console
+      - DJANGO_DB_LOG_HANDLER=console
+
+      # Security
+      - SECRET_KEY=chv^^7i_v3-04!rzu&qe#+h*a=%h(ib#5w9n$$!f2q7%2$$qp=zz
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+
+      # Scheduler - Disabled on first run to allow migrations
+      - SCHEDULER_AUTOSTART=False
+
+      # Password validation
+      - PASSWORD_MIN_LENGTH=${PASSWORD_MIN_LENGTH:-8}
+      - PASSWORD_UPPERCASE=${PASSWORD_UPPERCASE:-1}
+      - PASSWORD_LOWERCASE=${PASSWORD_LOWERCASE:-1}
+      - PASSWORD_DIGITS=${PASSWORD_DIGITS:-1}
+      - PASSWORD_SYMBOLS=${PASSWORD_SYMBOLS:-1}
+
+      # Lockout
+      - LOGIN_LOCKOUT_FAILURE_LIMIT=${LOGIN_LOCKOUT_FAILURE_LIMIT:-5}
+      - LOGIN_LOCKOUT_COOLOFF_TIME=${LOGIN_LOCKOUT_COOLOFF_TIME:-5}
+
+      # Rate limiting
+      - RATELIMIT_CACHE=${RATELIMIT_CACHE:-default}
+      - RATELIMIT_KEY=${RATELIMIT_KEY:-ip}
+      - RATELIMIT_RATE=${RATELIMIT_RATE:-150/m}
+      - RATELIMIT_METHOD=${RATELIMIT_METHOD:-ALL}
+      - RATELIMIT_GROUP=${RATELIMIT_GROUP:-graphql}
+      - RATELIMIT_SKIP_TIMEOUT=${RATELIMIT_SKIP_TIMEOUT:-False}
+
+      # Demo dataset
+      - DEMO_DATASET=${DEMO_DATASET:-true}
+
+    volumes:
+      # Mount local PEP+ module for development
+      - ./openimis-be-pep_plus_py:/app/openimis-be-pep_plus_py
+      - ./openIMIS/file_storage:/app/file_storage
+      - ./openIMIS/staticfiles:/app/staticfiles
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["start"]
+    restart: always
+    networks:
+      - openimis-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ht/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  database:
+  database-mssql:
+
+networks:
+  openimis-network:
+    driver: bridge

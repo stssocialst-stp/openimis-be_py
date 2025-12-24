@@ -495,7 +495,7 @@ SCHEDULER_CONFIG = {
     "apscheduler.executors.processpool": {"type": "threadpool"},
 }
 
-SCHEDULER_AUTOSTART = os.environ.get("SCHEDULER_AUTOSTART", False)
+SCHEDULER_AUTOSTART = os.environ.get("SCHEDULER_AUTOSTART", "True").lower() == "true"
 
 # Normally, one creates a "scheduler" method that calls the appropriate scheduler.add_job but since we are in a
 # modular architecture and calling only once from the core module, this has to be dynamic.
@@ -658,3 +658,13 @@ PASSWORD_DIGITS = int(os.getenv('PASSWORD_DIGITS', 1))
 PASSWORD_SYMBOLS = int(os.getenv('PASSWORD_SYMBOLS', 1))
 
 IS_UNIT_TEST_ENV = 'test' in sys.argv
+
+# Add PEP+ module for development (module is installed via entrypoint.sh)
+if os.path.exists('/app/openimis-be-pep_plus_py') and 'pep_plus' not in INSTALLED_APPS:
+    try:
+        signal_binding_index = INSTALLED_APPS.index('signal_binding')
+        INSTALLED_APPS.insert(signal_binding_index, 'pep_plus')
+        OPENIMIS_APPS.append('pep_plus')
+    except ValueError:
+        INSTALLED_APPS.append('pep_plus')
+        OPENIMIS_APPS.append('pep_plus')
