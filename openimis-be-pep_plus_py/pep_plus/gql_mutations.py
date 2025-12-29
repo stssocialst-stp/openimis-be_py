@@ -19,6 +19,7 @@ from .services import (
     PresencaSessaoService, ExecucaoSessaoService, SupervisaoSessaoService,
     RelatorioDistritalService, EncaminhamentoService
 )
+from .utils import convert_ids_in_session_data, decode_id
 
 
 # ========== EDUCATIONAL MODULE MUTATIONS ==========
@@ -111,8 +112,8 @@ class CreateGrupoFamiliarInput(OpenIMISMutation.Input):
     """Input for creating a family group"""
     codigo = graphene.String(required=True)
     nome = graphene.String(required=True)
-    distrito_id = graphene.Int(required=True)
-    localidade_id = graphene.Int(required=False)
+    distrito_id = graphene.String(required=True)
+    localidade_id = graphene.String(required=False)
     numero_familias = graphene.Int(required=False)
     ativo = graphene.Boolean(required=False)
 
@@ -128,6 +129,11 @@ class CreateGrupoFamiliarMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
+            # Convert Relay IDs
+            if 'distrito_id' in data:
+                data['distrito_id'] = decode_id(data['distrito_id'])
+            if 'localidade_id' in data:
+                data['localidade_id'] = decode_id(data['localidade_id'])
             grupo = GrupoFamiliarService.create(data, user)
             return None
         except Exception as exc:
@@ -194,17 +200,17 @@ class DeleteGrupoFamiliarMutation(OpenIMISMutation):
 class CreateSessaoPEPInput(OpenIMISMutation.Input):
     """Input for creating a PEP session"""
     codigo_sessao = graphene.String(required=True)
-    coordenador_distrital_id = graphene.Int(required=True)
-    tecnico_social_id = graphene.Int(required=True)
-    distrito_id = graphene.Int(required=True)
-    modulo_id = graphene.Int(required=True)
+    coordenador_distrital_id = graphene.String(required=True)
+    tecnico_social_id = graphene.String(required=True)
+    distrito_id = graphene.String(required=True)
+    modulo_id = graphene.String(required=True)
     mes_modulo_anterior = graphene.String(required=False)
     dia_semana = graphene.String(required=True)
     data_sessao = graphene.Date(required=True)
     hora_sessao = graphene.Time(required=True)
     zona = graphene.String(required=True)
     numero_familias = graphene.Int(required=True)
-    grupo_familia_id = graphene.Int(required=True)
+    grupo_familia_id = graphene.String(required=True)
     tempo_deslocamento = graphene.Int(required=False)
     feedback_documentacao = graphene.String(required=True)
     tem_supervisao = graphene.Boolean(required=False)
@@ -223,7 +229,9 @@ class CreateSessaoPEPMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
-            sessao = SessaoPEPService.create(data, user)
+            # Convert Relay IDs to database IDs
+            converted_data = convert_ids_in_session_data(data)
+            sessao = SessaoPEPService.create(converted_data, user)
             return None
         except Exception as exc:
             return [{
@@ -297,17 +305,17 @@ class DeleteSessaoPEPMutation(OpenIMISMutation):
 class SessaoPEPInputType(graphene.InputObjectType):
     """Input type for a single session in bulk creation"""
     codigo_sessao = graphene.String(required=True)
-    coordenador_distrital_id = graphene.Int(required=True)
-    tecnico_social_id = graphene.Int(required=True)
-    distrito_id = graphene.Int(required=True)
-    modulo_id = graphene.Int(required=True)
+    coordenador_distrital_id = graphene.String(required=True)
+    tecnico_social_id = graphene.String(required=True)
+    distrito_id = graphene.String(required=True)
+    modulo_id = graphene.String(required=True)
     mes_modulo_anterior = graphene.String(required=False)
     dia_semana = graphene.String(required=True)
     data_sessao = graphene.Date(required=True)
     hora_sessao = graphene.Time(required=True)
     zona = graphene.String(required=True)
     numero_familias = graphene.Int(required=True)
-    grupo_familia_id = graphene.Int(required=True)
+    grupo_familia_id = graphene.String(required=True)
     tempo_deslocamento = graphene.Int(required=False)
     feedback_documentacao = graphene.String(required=True)
     tem_supervisao = graphene.Boolean(required=False)
@@ -327,7 +335,9 @@ class CreateMultipleSessoesPEPMutation(OpenIMISMutation):
     def async_mutate(cls, user, **data):
         try:
             sessions_list = [dict(session) for session in data.get('sessions', [])]
-            sessoes = SessaoPEPService.create_multiple(sessions_list, user)
+            # Convert Relay IDs to database IDs for each session
+            converted_sessions = [convert_ids_in_session_data(session) for session in sessions_list]
+            sessoes = SessaoPEPService.create_multiple(converted_sessions, user)
             return None
         except Exception as exc:
             return [{
@@ -340,7 +350,7 @@ class CreateMultipleSessoesPEPMutation(OpenIMISMutation):
 
 class CreatePresencaSessaoInput(OpenIMISMutation.Input):
     """Input for creating an attendance record"""
-    sessao_id = graphene.Int(required=True)
+    sessao_id = graphene.String(required=True)
     familia_id = graphene.String(required=True)
     nome_familia = graphene.String(required=True)
     grupo_id = graphene.String(required=False)
@@ -360,6 +370,9 @@ class CreatePresencaSessaoMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
+            # Convert Relay ID
+            if 'sessao_id' in data:
+                data['sessao_id'] = decode_id(data['sessao_id'])
             presenca = PresencaSessaoService.create(data, user)
             return None
         except Exception as exc:
@@ -422,10 +435,10 @@ class DeletePresencaSessaoMutation(OpenIMISMutation):
 
 class CreateExecucaoSessaoInput(OpenIMISMutation.Input):
     """Input for creating a session execution record"""
-    sessao_id = graphene.Int(required=True)
-    formador_id = graphene.Int(required=True)
-    supervisor_id = graphene.Int(required=False)
-    localidade_id = graphene.Int(required=False)
+    sessao_id = graphene.String(required=True)
+    formador_id = graphene.String(required=True)
+    supervisor_id = graphene.String(required=False)
+    localidade_id = graphene.String(required=False)
     numero_participantes_compromissos = graphene.Int(required=False)
     praticas_positivas = graphene.JSONString(required=False)
     desafios_transmissao = graphene.JSONString(required=False)
@@ -447,6 +460,8 @@ class CreateExecucaoSessaoMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
+            # Convert Relay IDs
+            data = convert_ids_in_session_data(data)
             execucao = ExecucaoSessaoService.create(data, user)
             return None
         except Exception as exc:
@@ -494,9 +509,9 @@ class UpdateExecucaoSessaoMutation(OpenIMISMutation):
 
 class CreateSupervisaoSessaoInput(OpenIMISMutation.Input):
     """Input for creating a supervision record"""
-    sessao_id = graphene.Int(required=True)
-    supervisor_id = graphene.Int(required=True)
-    formador_id = graphene.Int(required=True)
+    sessao_id = graphene.String(required=True)
+    supervisor_id = graphene.String(required=True)
+    formador_id = graphene.String(required=True)
     data_supervisao = graphene.Date(required=True)
     data_modulo_anterior = graphene.Date(required=False)
     identificador_grupo = graphene.String(required=True)
@@ -517,6 +532,8 @@ class CreateSupervisaoSessaoMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
+            # Convert Relay IDs
+            data = convert_ids_in_session_data(data)
             supervisao = SupervisaoSessaoService.create(data, user)
             return None
         except Exception as exc:
@@ -560,13 +577,13 @@ class UpdateSupervisaoSessaoMutation(OpenIMISMutation):
 
 class CreateEncaminhamentoInput(OpenIMISMutation.Input):
     """Input for creating a referral"""
-    sessao_id = graphene.Int(required=True)
+    sessao_id = graphene.String(required=True)
     familia_id = graphene.String(required=True)
     nome_familia = graphene.String(required=True)
     codigo_encaminhamento = graphene.String(required=True)
     descricao = graphene.String(required=True)
     status = graphene.String(required=False)
-    tecnico_responsavel_id = graphene.Int(required=False)
+    tecnico_responsavel_id = graphene.String(required=False)
     observacoes = graphene.String(required=False)
 
 
@@ -581,6 +598,8 @@ class CreateEncaminhamentoMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
+            # Convert Relay IDs
+            data = convert_ids_in_session_data(data)
             encaminhamento = EncaminhamentoService.create(data, user)
             return None
         except Exception as exc:
