@@ -129,12 +129,9 @@ class CreateGrupoFamiliarMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
-            # Convert Relay IDs
-            if 'distrito_id' in data:
-                data['distrito_id'] = decode_id(data['distrito_id'])
-            if 'localidade_id' in data:
-                data['localidade_id'] = decode_id(data['localidade_id'])
-            grupo = GrupoFamiliarService.create(data, user)
+            # Convert Relay IDs and UUIDs to database IDs
+            converted_data = convert_ids_in_session_data(data)
+            grupo = GrupoFamiliarService.create(converted_data, user)
             return None
         except Exception as exc:
             return [{
@@ -370,10 +367,9 @@ class CreatePresencaSessaoMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
-            # Convert Relay ID
-            if 'sessao_id' in data:
-                data['sessao_id'] = decode_id(data['sessao_id'])
-            presenca = PresencaSessaoService.create(data, user)
+            # Convert Relay IDs and UUIDs to database IDs
+            converted_data = convert_ids_in_session_data(data)
+            presenca = PresencaSessaoService.create(converted_data, user)
             return None
         except Exception as exc:
             return [{
