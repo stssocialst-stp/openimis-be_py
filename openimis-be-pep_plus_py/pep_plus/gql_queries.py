@@ -4,8 +4,9 @@ Implements READ operations for all PEP+ entities
 """
 import graphene
 from graphene_django import DjangoObjectType
-from core.schema import OrderedDjangoFilterConnectionField
+from core.schema import OrderedDjangoFilterConnectionField, UserGQLType
 from core import ExtendedConnection
+from location.gql_queries import LocationGQLType
 from .models import (
     ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
@@ -31,6 +32,9 @@ class ModuloEducacionalGQLType(DjangoObjectType):
 class GrupoFamiliarGQLType(DjangoObjectType):
     """GraphQL Type for Family Group"""
 
+    distrito = graphene.Field(LocationGQLType)
+    localidade = graphene.Field(LocationGQLType)
+
     class Meta:
         model = GrupoFamiliar
         interfaces = (graphene.relay.Node,)
@@ -46,6 +50,12 @@ class GrupoFamiliarGQLType(DjangoObjectType):
 
 class SessaoPEPGQLType(DjangoObjectType):
     """GraphQL Type for PEP Session"""
+
+    coordenador_distrital = graphene.Field(UserGQLType)
+    tecnico_social = graphene.Field(UserGQLType)
+    distrito = graphene.Field(LocationGQLType)
+    modulo = graphene.Field(ModuloEducacionalGQLType)
+    grupo_familia = graphene.Field(GrupoFamiliarGQLType)
 
     class Meta:
         model = SessaoPEP
@@ -68,6 +78,8 @@ class SessaoPEPGQLType(DjangoObjectType):
 class PresencaSessaoGQLType(DjangoObjectType):
     """GraphQL Type for Session Attendance"""
 
+    sessao = graphene.Field(SessaoPEPGQLType)
+
     class Meta:
         model = PresencaSessao
         interfaces = (graphene.relay.Node,)
@@ -85,6 +97,11 @@ class PresencaSessaoGQLType(DjangoObjectType):
 class ExecucaoSessaoGQLType(DjangoObjectType):
     """GraphQL Type for Session Execution"""
 
+    sessao = graphene.Field(SessaoPEPGQLType)
+    formador = graphene.Field(UserGQLType)
+    supervisor = graphene.Field(UserGQLType)
+    localidade = graphene.Field(LocationGQLType)
+
     class Meta:
         model = ExecucaoSessao
         interfaces = (graphene.relay.Node,)
@@ -101,6 +118,10 @@ class ExecucaoSessaoGQLType(DjangoObjectType):
 
 class SupervisaoSessaoGQLType(DjangoObjectType):
     """GraphQL Type for Session Supervision"""
+
+    sessao = graphene.Field(SessaoPEPGQLType)
+    supervisor = graphene.Field(UserGQLType)
+    formador = graphene.Field(UserGQLType)
 
     class Meta:
         model = SupervisaoSessao
@@ -134,6 +155,9 @@ class RelatorioDistritalBimestralGQLType(DjangoObjectType):
 
 class EncaminhamentoSessaoGQLType(DjangoObjectType):
     """GraphQL Type for Session Referral"""
+
+    sessao = graphene.Field(SessaoPEPGQLType)
+    tecnico_responsavel = graphene.Field(UserGQLType)
 
     class Meta:
         model = EncaminhamentoSessao
@@ -215,23 +239,49 @@ class Query(graphene.ObjectType):
 
     def resolve_grupos_familiares(self, info, **kwargs):
         """Resolve family groups query"""
-        return GrupoFamiliar.objects.filter(validity_to__isnull=True)
+        return GrupoFamiliar.objects.filter(validity_to__isnull=True).select_related(
+            'distrito', 'localidade'
+        )
 
     def resolve_sessoes_pep(self, info, **kwargs):
         """Resolve PEP sessions query"""
-        return SessaoPEP.objects.filter(validity_to__isnull=True)
+        return SessaoPEP.objects.filter(validity_to__isnull=True).select_related(
+            'coordenador_distrital',
+            'tecnico_social',
+            'distrito',
+            'modulo',
+            'grupo_familia',
+            'grupo_familia__distrito',
+            'grupo_familia__localidade'
+        )
 
     def resolve_presencas_sessao(self, info, **kwargs):
         """Resolve session attendance query"""
-        return PresencaSessao.objects.filter(validity_to__isnull=True)
+        return PresencaSessao.objects.filter(validity_to__isnull=True).select_related(
+            'sessao',
+            'sessao__coordenador_distrital',
+            'sessao__tecnico_social',
+            'sessao__distrito',
+            'sessao__modulo',
+            'sessao__grupo_familia'
+        )
 
     def resolve_execucoes_sessao(self, info, **kwargs):
         """Resolve session execution query"""
-        return ExecucaoSessao.objects.filter(validity_to__isnull=True)
+        return ExecucaoSessao.objects.filter(validity_to__isnull=True).select_related(
+            'sessao',
+            'formador',
+            'supervisor',
+            'localidade'
+        )
 
     def resolve_supervisoes_sessao(self, info, **kwargs):
         """Resolve session supervision query"""
-        return SupervisaoSessao.objects.filter(validity_to__isnull=True)
+        return SupervisaoSessao.objects.filter(validity_to__isnull=True).select_related(
+            'sessao',
+            'supervisor',
+            'formador'
+        )
 
     def resolve_relatorios_distritais(self, info, **kwargs):
         """Resolve district reports query"""
@@ -239,4 +289,7 @@ class Query(graphene.ObjectType):
 
     def resolve_encaminhamentos_sessao(self, info, **kwargs):
         """Resolve referrals query"""
-        return EncaminhamentoSessao.objects.filter(validity_to__isnull=True)
+        return EncaminhamentoSessao.objects.filter(validity_to__isnull=True).select_related(
+            'sessao',
+            'tecnico_responsavel'
+        )
