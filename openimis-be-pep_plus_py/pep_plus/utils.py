@@ -100,7 +100,8 @@ def convert_ids_in_session_data(session_data):
         'localidade_id',
         'formador_id',
         'supervisor_id',
-        'tecnico_responsavel_id'
+        'tecnico_responsavel_id',
+        'sessao_id'
     ]
 
     converted = session_data.copy()
@@ -149,6 +150,7 @@ def convert_uuid_to_id(field_name, uuid_value):
         'tecnico_responsavel_id': (User, 'id'),
         'distrito_id': (Location, 'uuid'),
         'localidade_id': (Location, 'uuid'),
+        'sessao_id': (SessaoPEP, 'uuid'),
     }
 
     if field_name not in model_mapping:
