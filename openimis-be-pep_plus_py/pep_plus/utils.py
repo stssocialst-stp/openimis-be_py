@@ -2,8 +2,11 @@
 PEP+ Utility Functions
 Helper functions for ID conversion and data processing
 """
+import logging
 import base64
 from graphql_relay import from_global_id
+
+logger = logging.getLogger(__name__)
 
 
 def decode_id(encoded_id):
@@ -104,6 +107,63 @@ def convert_ids_in_session_data(session_data):
 
     for field in id_fields:
         if field in converted and converted[field] is not None:
-            converted[field] = decode_id(converted[field])
+            decoded = decode_id(converted[field])
+
+            # If it's a UUID (contains hyphens), convert to numeric ID
+            if isinstance(decoded, str) and '-' in decoded:
+                decoded = convert_uuid_to_id(field, decoded)
+
+            converted[field] = decoded
 
     return converted
+
+
+def convert_uuid_to_id(field_name, uuid_value):
+    """
+    Convert UUID to numeric ID by looking up the database.
+
+    Args:
+        field_name: Name of the field (e.g., 'grupo_familia_id')
+        uuid_value: UUID string
+
+    Returns:
+        Numeric ID or the UUID if conversion fails
+    """
+    logger.info(f"[PEP+] convert_uuid_to_id: field={field_name}, uuid={uuid_value}")
+
+    # Import models here to avoid circular imports
+    from .models import (
+        GrupoFamiliar, ModuloEducacional, SessaoPEP,
+        PresencaSessao, ExecucaoSessao, SupervisaoSessao
+    )
+    from core.models import User
+    from location.models import Location
+
+    model_mapping = {
+        'grupo_familia_id': (GrupoFamiliar, 'uuid'),
+        'modulo_id': (ModuloEducacional, 'uuid'),
+        'coordenador_distrital_id': (User, 'id'),
+        'tecnico_social_id': (User, 'id'),
+        'formador_id': (User, 'id'),
+        'supervisor_id': (User, 'id'),
+        'tecnico_responsavel_id': (User, 'id'),
+        'distrito_id': (Location, 'uuid'),
+        'localidade_id': (Location, 'uuid'),
+    }
+
+    if field_name not in model_mapping:
+        logger.warning(f"[PEP+] Field {field_name} not in mapping, returning UUID as-is")
+        return uuid_value
+
+    model_class, uuid_field = model_mapping[field_name]
+    logger.info(f"[PEP+] Looking up {model_class.__name__} by {uuid_field}={uuid_value}")
+
+    try:
+        # Look up the object by UUID and get its numeric ID
+        obj = model_class.objects.get(**{uuid_field: uuid_value})
+        logger.info(f"[PEP+] Found object! Converting UUID {uuid_value} to ID {obj.id}")
+        return obj.id
+    except Exception as e:
+        # If lookup fails, return the UUID as-is
+        logger.error(f"[PEP+] Failed to convert UUID to ID: {e}")
+        return uuid_value

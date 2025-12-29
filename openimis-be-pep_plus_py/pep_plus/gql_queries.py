@@ -2,11 +2,14 @@
 PEP+ GraphQL Queries
 Implements READ operations for all PEP+ entities
 """
+import logging
 import graphene
 from graphene_django import DjangoObjectType
 from core.schema import OrderedDjangoFilterConnectionField, UserGQLType
 from core import ExtendedConnection
 from location.gql_queries import LocationGQLType
+
+logger = logging.getLogger(__name__)
 from .models import (
     ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
@@ -245,7 +248,7 @@ class Query(graphene.ObjectType):
 
     def resolve_sessoes_pep(self, info, **kwargs):
         """Resolve PEP sessions query"""
-        return SessaoPEP.objects.filter(validity_to__isnull=True).select_related(
+        queryset = SessaoPEP.objects.filter(validity_to__isnull=True).select_related(
             'coordenador_distrital',
             'tecnico_social',
             'distrito',
@@ -254,6 +257,11 @@ class Query(graphene.ObjectType):
             'grupo_familia__distrito',
             'grupo_familia__localidade'
         )
+        total = queryset.count()
+        logger.info(f"[PEP+] resolve_sessoes_pep: Found {total} sessions with validity_to IS NULL")
+        all_sessions = SessaoPEP.objects.all().count()
+        logger.info(f"[PEP+] Total sessions in DB (all): {all_sessions}")
+        return queryset
 
     def resolve_presencas_sessao(self, info, **kwargs):
         """Resolve session attendance query"""
