@@ -253,6 +253,45 @@ class SessaoPEPService(BaseService):
             sessao.delete_history(user=user)
             return sessao
 
+    @classmethod
+    def create_multiple(cls, sessions_list, user):
+        """Create multiple PEP sessions at once"""
+        # Check permissions
+        if not user.has_perms(['pep_plus.add_sessaopep']):
+            raise PermissionDenied("User does not have permission to create PEP sessions")
+
+        with transaction.atomic():
+            sessoes = []
+            for session_data in sessions_list:
+                # Validate each session
+                errors = validate_sessao_planeamento(session_data)
+                if errors:
+                    raise ValidationError(errors)
+
+                sessao = SessaoPEP.objects.create(
+                    codigo_sessao=session_data['codigo_sessao'],
+                    coordenador_distrital_id=session_data['coordenador_distrital_id'],
+                    tecnico_social_id=session_data['tecnico_social_id'],
+                    distrito_id=session_data['distrito_id'],
+                    modulo_id=session_data['modulo_id'],
+                    mes_modulo_anterior=session_data.get('mes_modulo_anterior'),
+                    dia_semana=session_data['dia_semana'],
+                    data_sessao=session_data['data_sessao'],
+                    hora_sessao=session_data['hora_sessao'],
+                    zona=session_data['zona'],
+                    numero_familias=session_data['numero_familias'],
+                    grupo_familia_id=session_data['grupo_familia_id'],
+                    tempo_deslocamento=session_data.get('tempo_deslocamento'),
+                    feedback_documentacao=session_data['feedback_documentacao'],
+                    tem_supervisao=session_data.get('tem_supervisao', False),
+                    observacoes=session_data.get('observacoes'),
+                    status=session_data.get('status', 'PLAN'),
+                    audit_user_id=user.id_for_audit
+                )
+                sessoes.append(sessao)
+
+            return sessoes
+
 
 class PresencaSessaoService(BaseService):
     """Service for Session Attendance operations (Ferramenta 2)"""

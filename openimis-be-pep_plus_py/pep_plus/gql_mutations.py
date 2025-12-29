@@ -294,6 +294,48 @@ class DeleteSessaoPEPMutation(OpenIMISMutation):
             }]
 
 
+class SessaoPEPInputType(graphene.InputObjectType):
+    """Input type for a single session in bulk creation"""
+    codigo_sessao = graphene.String(required=True)
+    coordenador_distrital_id = graphene.Int(required=True)
+    tecnico_social_id = graphene.Int(required=True)
+    distrito_id = graphene.Int(required=True)
+    modulo_id = graphene.Int(required=True)
+    mes_modulo_anterior = graphene.String(required=False)
+    dia_semana = graphene.String(required=True)
+    data_sessao = graphene.Date(required=True)
+    hora_sessao = graphene.Time(required=True)
+    zona = graphene.String(required=True)
+    numero_familias = graphene.Int(required=True)
+    grupo_familia_id = graphene.Int(required=True)
+    tempo_deslocamento = graphene.Int(required=False)
+    feedback_documentacao = graphene.String(required=True)
+    tem_supervisao = graphene.Boolean(required=False)
+    observacoes = graphene.String(required=False)
+    status = graphene.String(required=False)
+
+
+class CreateMultipleSessoesPEPMutation(OpenIMISMutation):
+    """Create multiple PEP sessions at once"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "CreateMultipleSessoesPEPMutation"
+
+    class Input(OpenIMISMutation.Input):
+        sessions = graphene.List(graphene.NonNull(SessaoPEPInputType), required=True)
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            sessions_list = [dict(session) for session in data.get('sessions', [])]
+            sessoes = SessaoPEPService.create_multiple(sessions_list, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
 # ========== SESSION ATTENDANCE MUTATIONS (Ferramenta 2) ==========
 
 class CreatePresencaSessaoInput(OpenIMISMutation.Input):
@@ -594,6 +636,7 @@ class Mutation(graphene.ObjectType):
 
     # PEP Session mutations (Ferramenta 1)
     create_sessao_pep = CreateSessaoPEPMutation.Field()
+    create_multiple_sessoes_pep = CreateMultipleSessoesPEPMutation.Field()
     update_sessao_pep = UpdateSessaoPEPMutation.Field()
     delete_sessao_pep = DeleteSessaoPEPMutation.Field()
 
