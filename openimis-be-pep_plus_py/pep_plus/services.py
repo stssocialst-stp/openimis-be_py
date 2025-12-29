@@ -42,9 +42,10 @@ class ModuloEducacionalService(BaseService):
                 descricao=data.get('descricao'),
                 ordem=data.get('ordem', 0),
                 duracao_semanas=data.get('duracao_semanas', 1),
-                ativo=data.get('ativo', True),
-                audit_user_id=user.id_for_audit
+                ativo=data.get('ativo', True)
             )
+            modulo.audit_user_id = user.id_for_audit
+            modulo.save()
             return modulo
 
     @classmethod
@@ -115,9 +116,10 @@ class GrupoFamiliarService(BaseService):
                 distrito_id=data['distrito_id'],
                 localidade_id=data.get('localidade_id'),
                 numero_familias=data.get('numero_familias', 0),
-                ativo=data.get('ativo', True),
-                audit_user_id=user.id_for_audit
+                ativo=data.get('ativo', True)
             )
+            grupo.audit_user_id = user.id_for_audit
+            grupo.save()
             return grupo
 
     @classmethod
@@ -194,9 +196,10 @@ class SessaoPEPService(BaseService):
                 feedback_documentacao=data['feedback_documentacao'],
                 tem_supervisao=data.get('tem_supervisao', False),
                 observacoes=data.get('observacoes'),
-                status=data.get('status', 'PLAN'),
-                audit_user_id=user.id_for_audit
+                status=data.get('status', 'PLAN')
             )
+            sessao.audit_user_id = user.id_for_audit
+            sessao.save()
             return sessao
 
     @classmethod
@@ -285,9 +288,10 @@ class SessaoPEPService(BaseService):
                     feedback_documentacao=session_data['feedback_documentacao'],
                     tem_supervisao=session_data.get('tem_supervisao', False),
                     observacoes=session_data.get('observacoes'),
-                    status=session_data.get('status', 'PLAN'),
-                    audit_user_id=user.id_for_audit
+                    status=session_data.get('status', 'PLAN')
                 )
+                sessao.audit_user_id = user.id_for_audit
+                sessao.save()
                 sessoes.append(sessao)
 
             return sessoes
@@ -318,9 +322,10 @@ class PresencaSessaoService(BaseService):
                 grupo_id=data.get('grupo_id'),
                 estado=data.get('estado', 'PRES'),
                 codigo_encaminhamento=data.get('codigo_encaminhamento'),
-                observacoes=data.get('observacoes'),
-                audit_user_id=user.id_for_audit
+                observacoes=data.get('observacoes')
             )
+            presenca.audit_user_id = user.id_for_audit
+            presenca.save()
             return presenca
 
     @classmethod
@@ -384,9 +389,10 @@ class PresencaSessaoService(BaseService):
                     grupo_id=familia_data.get('grupo_id'),
                     estado=familia_data.get('estado', 'PRES'),
                     codigo_encaminhamento=familia_data.get('codigo_encaminhamento'),
-                    observacoes=familia_data.get('observacoes'),
-                    audit_user_id=user.id_for_audit
+                    observacoes=familia_data.get('observacoes')
                 )
+                presenca.audit_user_id = user.id_for_audit
+                presenca.save()
                 presencas.append(presenca)
 
             return presencas
@@ -422,9 +428,10 @@ class ExecucaoSessaoService(BaseService):
                 auto_avaliacao_pontos_fortes=data.get('auto_avaliacao_pontos_fortes', []),
                 auto_avaliacao_pontos_atencao=data.get('auto_avaliacao_pontos_atencao', []),
                 avaliacao_metodologia=data.get('avaliacao_metodologia', {}),
-                observacoes=data.get('observacoes'),
-                audit_user_id=user.id_for_audit
+                observacoes=data.get('observacoes')
             )
+            execucao.audit_user_id = user.id_for_audit
+            execucao.save()
 
             # Update session status
             sessao = execucao.sessao
@@ -491,9 +498,10 @@ class SupervisaoSessaoService(BaseService):
                 perguntas_avaliacao=data.get('perguntas_avaliacao', {}),
                 pontos_positivos=data.get('pontos_positivos'),
                 pontos_melhorar=data.get('pontos_melhorar'),
-                observacoes=data.get('observacoes'),
-                audit_user_id=user.id_for_audit
+                observacoes=data.get('observacoes')
             )
+            supervisao.audit_user_id = user.id_for_audit
+            supervisao.save()
             return supervisao
 
     @classmethod
@@ -566,9 +574,10 @@ class RelatorioDistritalService(BaseService):
                 media_familia_esperada=data.get('media_familia_esperada', 0),
                 dados_tecnicos=data.get('dados_tecnicos', []),
                 dados_encaminhamentos=data.get('dados_encaminhamentos', []),
-                observacoes=data.get('observacoes'),
-                audit_user_id=user.id_for_audit
+                observacoes=data.get('observacoes')
             )
+            relatorio.audit_user_id = user.id_for_audit
+            relatorio.save()
             return relatorio
 
 
@@ -598,9 +607,10 @@ class EncaminhamentoService(BaseService):
                 descricao=data['descricao'],
                 status=data.get('status', 'PEND'),
                 tecnico_responsavel_id=data.get('tecnico_responsavel_id'),
-                observacoes=data.get('observacoes'),
-                audit_user_id=user.id_for_audit
+                observacoes=data.get('observacoes')
             )
+            encaminhamento.audit_user_id = user.id_for_audit
+            encaminhamento.save()
             return encaminhamento
 
     @classmethod
