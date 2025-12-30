@@ -729,6 +729,109 @@ class DeleteRoteiroReuniaoMutation(OpenIMISMutation):
             }]
 
 
+# ========== SUPERVISION REPORT MUTATIONS (FERRAMENTA 7) ==========
+
+class CreateRelatorioSupervisaoInput(OpenIMISMutation.Input):
+    """Input for creating a bimonthly supervision report"""
+    nome_supervisores = graphene.String(required=True)
+    num_sessoes_supervisionadas = graphene.Int(required=True)
+    num_tecnicos_supervisionados = graphene.Int(required=True)
+    distrito_id = graphene.Int(required=True)
+    periodo = graphene.Int(required=True)
+    ano = graphene.Int(required=True)
+    periodo_inicio = graphene.Date(required=True)
+    periodo_fim = graphene.Date(required=True)
+    avaliacoes_tecnicos = graphene.JSONString(required=False)
+    notas_sessoes_pep = graphene.JSONString(required=False)
+    modulo_maior_dificuldade_id = graphene.Int(required=False)
+    observacoes_adicionais = graphene.String(required=False)
+
+
+class CreateRelatorioSupervisaoMutation(OpenIMISMutation):
+    """Create a new bimonthly supervision report"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "CreateRelatorioSupervisaoMutation"
+
+    class Input(CreateRelatorioSupervisaoInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            from .services import RelatorioSupervisaoService
+            relatorio = RelatorioSupervisaoService.create(data, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
+class UpdateRelatorioSupervisaoInput(OpenIMISMutation.Input):
+    """Input for updating a bimonthly supervision report"""
+    id = graphene.Int(required=True)
+    nome_supervisores = graphene.String(required=False)
+    num_sessoes_supervisionadas = graphene.Int(required=False)
+    num_tecnicos_supervisionados = graphene.Int(required=False)
+    distrito_id = graphene.Int(required=False)
+    periodo = graphene.Int(required=False)
+    ano = graphene.Int(required=False)
+    periodo_inicio = graphene.Date(required=False)
+    periodo_fim = graphene.Date(required=False)
+    avaliacoes_tecnicos = graphene.JSONString(required=False)
+    notas_sessoes_pep = graphene.JSONString(required=False)
+    modulo_maior_dificuldade_id = graphene.Int(required=False)
+    observacoes_adicionais = graphene.String(required=False)
+
+
+class UpdateRelatorioSupervisaoMutation(OpenIMISMutation):
+    """Update an existing bimonthly supervision report"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "UpdateRelatorioSupervisaoMutation"
+
+    class Input(UpdateRelatorioSupervisaoInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            from .services import RelatorioSupervisaoService
+            relatorio = RelatorioSupervisaoService.update(data, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
+class DeleteRelatorioSupervisaoInput(OpenIMISMutation.Input):
+    """Input for deleting a bimonthly supervision report"""
+    id = graphene.Int(required=True)
+
+
+class DeleteRelatorioSupervisaoMutation(OpenIMISMutation):
+    """Delete (soft delete) a bimonthly supervision report"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "DeleteRelatorioSupervisaoMutation"
+
+    class Input(DeleteRelatorioSupervisaoInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            from .services import RelatorioSupervisaoService
+            RelatorioSupervisaoService.delete(data['id'], user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
 # ========== ROOT MUTATION ==========
 
 class Mutation(graphene.ObjectType):
@@ -771,3 +874,8 @@ class Mutation(graphene.ObjectType):
     create_roteiro_reuniao = CreateRoteiroReuniaoMutation.Field()
     update_roteiro_reuniao = UpdateRoteiroReuniaoMutation.Field()
     delete_roteiro_reuniao = DeleteRoteiroReuniaoMutation.Field()
+
+    # Bimonthly Supervision Report mutations (Ferramenta 7)
+    create_relatorio_supervisao = CreateRelatorioSupervisaoMutation.Field()
+    update_relatorio_supervisao = UpdateRelatorioSupervisaoMutation.Field()
+    delete_relatorio_supervisao = DeleteRelatorioSupervisaoMutation.Field()

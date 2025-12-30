@@ -11,7 +11,8 @@ from .models import (
     SupervisaoSessao,
     RelatorioDistritalBimestral,
     EncaminhamentoSessao,
-    RoteiroReuniaoBimestral
+    RoteiroReuniaoBimestral,
+    RelatorioSupervisaoBimestral
 )
 
 
@@ -90,3 +91,11 @@ class RoteiroReuniaoBimestralAdmin(admin.ModelAdmin):
     search_fields = ('coordenador_nacional', 'participantes')
     date_hierarchy = 'data_reuniao'
     ordering = ('-data_reuniao',)
+
+
+@admin.register(RelatorioSupervisaoBimestral)
+class RelatorioSupervisaoBimestralAdmin(admin.ModelAdmin):
+    list_display = ('distrito', 'periodo', 'ano', 'num_sessoes_supervisionadas', 'num_tecnicos_supervisionados', 'periodo_inicio', 'periodo_fim')
+    list_filter = ('periodo', 'ano', 'distrito')
+    search_fields = ('nome_supervisores', 'distrito__name')
+    ordering = ('-ano', '-periodo')

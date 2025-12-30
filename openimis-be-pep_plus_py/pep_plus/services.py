@@ -725,3 +725,101 @@ class RoteiroReuniaoService(BaseService):
             roteiro.audit_user_id = user.id_for_audit
             roteiro.save()
             return roteiro
+
+
+class RelatorioSupervisaoService(BaseService):
+    """Service for Bimonthly Supervision Report operations (Ferramenta 7)"""
+
+    @classmethod
+    def create(cls, data, user):
+        """Create a new bimonthly supervision report"""
+        from .models import RelatorioSupervisaoBimestral
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.add_relatoriosupervisaobimestral']):
+            raise PermissionDenied("User does not have permission to create bimonthly supervision reports")
+
+        with transaction.atomic():
+            relatorio = RelatorioSupervisaoBimestral.objects.create(
+                nome_supervisores=data['nome_supervisores'],
+                num_sessoes_supervisionadas=data['num_sessoes_supervisionadas'],
+                num_tecnicos_supervisionados=data['num_tecnicos_supervisionados'],
+                distrito_id=data['distrito_id'],
+                periodo=data['periodo'],
+                ano=data['ano'],
+                periodo_inicio=data['periodo_inicio'],
+                periodo_fim=data['periodo_fim'],
+                avaliacoes_tecnicos=data.get('avaliacoes_tecnicos', []),
+                notas_sessoes_pep=data.get('notas_sessoes_pep', {}),
+                modulo_maior_dificuldade_id=data.get('modulo_maior_dificuldade_id'),
+                observacoes_adicionais=data.get('observacoes_adicionais')
+            )
+            relatorio.audit_user_id = user.id_for_audit
+            relatorio.save()
+            return relatorio
+
+    @classmethod
+    def update(cls, data, user):
+        """Update an existing bimonthly supervision report"""
+        from .models import RelatorioSupervisaoBimestral
+
+        try:
+            relatorio = RelatorioSupervisaoBimestral.objects.get(id=data['id'], validity_to__isnull=True)
+        except RelatorioSupervisaoBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'Bimonthly supervision report not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.change_relatoriosupervisaobimestral']):
+            raise PermissionDenied("User does not have permission to update bimonthly supervision reports")
+
+        with transaction.atomic():
+            # Update fields if provided
+            if 'nome_supervisores' in data:
+                relatorio.nome_supervisores = data['nome_supervisores']
+            if 'num_sessoes_supervisionadas' in data:
+                relatorio.num_sessoes_supervisionadas = data['num_sessoes_supervisionadas']
+            if 'num_tecnicos_supervisionados' in data:
+                relatorio.num_tecnicos_supervisionados = data['num_tecnicos_supervisionados']
+            if 'distrito_id' in data:
+                relatorio.distrito_id = data['distrito_id']
+            if 'periodo' in data:
+                relatorio.periodo = data['periodo']
+            if 'ano' in data:
+                relatorio.ano = data['ano']
+            if 'periodo_inicio' in data:
+                relatorio.periodo_inicio = data['periodo_inicio']
+            if 'periodo_fim' in data:
+                relatorio.periodo_fim = data['periodo_fim']
+            if 'avaliacoes_tecnicos' in data:
+                relatorio.avaliacoes_tecnicos = data['avaliacoes_tecnicos']
+            if 'notas_sessoes_pep' in data:
+                relatorio.notas_sessoes_pep = data['notas_sessoes_pep']
+            if 'modulo_maior_dificuldade_id' in data:
+                relatorio.modulo_maior_dificuldade_id = data['modulo_maior_dificuldade_id']
+            if 'observacoes_adicionais' in data:
+                relatorio.observacoes_adicionais = data['observacoes_adicionais']
+
+            relatorio.audit_user_id = user.id_for_audit
+            relatorio.save()
+            return relatorio
+
+    @classmethod
+    def delete(cls, relatorio_id, user):
+        """Soft delete a bimonthly supervision report"""
+        from .models import RelatorioSupervisaoBimestral
+
+        try:
+            relatorio = RelatorioSupervisaoBimestral.objects.get(id=relatorio_id, validity_to__isnull=True)
+        except RelatorioSupervisaoBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'Bimonthly supervision report not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.delete_relatoriosupervisaobimestral']):
+            raise PermissionDenied("User does not have permission to delete bimonthly supervision reports")
+
+        with transaction.atomic():
+            from django.utils import timezone
+            relatorio.validity_to = timezone.now()
+            relatorio.audit_user_id = user.id_for_audit
+            relatorio.save()
+            return relatorio

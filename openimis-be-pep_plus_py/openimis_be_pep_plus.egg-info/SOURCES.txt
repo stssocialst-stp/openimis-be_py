@@ -19,4 +19,5 @@ pep_plus/utils.py
 pep_plus/validations.py
 pep_plus/migrations/0001_initial.py
 pep_plus/migrations/0002_roteiroreuniaobimestral.py
+pep_plus/migrations/0003_relatoriosupervisaobimestral.py
 pep_plus/migrations/__init__.py
