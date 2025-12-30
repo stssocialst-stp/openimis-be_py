@@ -338,3 +338,46 @@ class EncaminhamentoSessao(core_models.VersionedModel):
 
     def __str__(self):
         return f"{self.codigo_encaminhamento} - {self.nome_familia}"
+
+
+class RoteiroReuniaoBimestral(core_models.VersionedModel):
+    """
+    Bimonthly Meeting Agenda - Records bimonthly supervision meetings (Ferramenta 6)
+    """
+    id = models.AutoField(db_column='RoteiroReuniaoID', primary_key=True)
+    uuid = models.CharField(db_column='RoteiroReuniaoUUID', max_length=36, default=uuid.uuid4, unique=True)
+
+    # Informações da reunião
+    data_reuniao = models.DateField(db_column='DataReuniao')
+    horario = models.TimeField(db_column='Horario')
+    coordenador_nacional = models.CharField(db_column='CoordenadorNacional', max_length=255)
+    participantes = models.TextField(db_column='Participantes',
+                                     help_text='Lista de todos os participantes presentes na reunião')
+
+    # Resumo da agenda (checklist dos 6 tópicos padrão)
+    # Cada item: {topico: str, duracao: int, concluido: bool}
+    resumo_agenda = models.JSONField(db_column='ResumoAgenda', default=list, blank=True,
+                                     help_text='Lista de tópicos discutidos durante a reunião')
+
+    # Conteúdos da reunião
+    desafios_solucoes = models.TextField(db_column='DesafiosSolucoes',
+                                         help_text='Principais desafios enfrentados e soluções aplicadas')
+    oportunidades_praticas = models.TextField(db_column='OportunidadesPraticas',
+                                              help_text='Oportunidades identificadas e práticas bem-sucedidas')
+    analise_dados_tendencias = models.TextField(db_column='AnaliseDadosTendencias',
+                                                 help_text='Análise de dados e tendências identificadas')
+    acoes_definidas = models.TextField(db_column='AcoesDefinidas',
+                                        help_text='Ações definidas, responsáveis e prazos')
+
+    # Próxima reunião
+    data_proxima_reuniao = models.DateField(db_column='DataProximaReuniao', null=True, blank=True)
+    observacoes_proxima_reuniao = models.TextField(db_column='ObservacoesProximaReuniao',
+                                                    null=True, blank=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblRoteiroReuniaoBimestral'
+        ordering = ['-data_reuniao']
+
+    def __str__(self):
+        return f"Reunião {self.data_reuniao} - {self.coordenador_nacional}"

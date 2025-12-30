@@ -10,7 +10,8 @@ from .models import (
     ExecucaoSessao,
     SupervisaoSessao,
     RelatorioDistritalBimestral,
-    EncaminhamentoSessao
+    EncaminhamentoSessao,
+    RoteiroReuniaoBimestral
 )
 
 
@@ -80,3 +81,12 @@ class EncaminhamentoSessaoAdmin(admin.ModelAdmin):
     search_fields = ('familia_id', 'nome_familia', 'codigo_encaminhamento')
     date_hierarchy = 'data_encaminhamento'
     ordering = ('-data_encaminhamento',)
+
+
+@admin.register(RoteiroReuniaoBimestral)
+class RoteiroReuniaoBimestralAdmin(admin.ModelAdmin):
+    list_display = ('data_reuniao', 'coordenador_nacional', 'horario', 'data_proxima_reuniao')
+    list_filter = ('data_reuniao', 'coordenador_nacional')
+    search_fields = ('coordenador_nacional', 'participantes')
+    date_hierarchy = 'data_reuniao'
+    ordering = ('-data_reuniao',)

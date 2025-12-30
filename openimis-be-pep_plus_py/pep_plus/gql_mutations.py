@@ -7,17 +7,18 @@ from core.schema import OpenIMISMutation
 from .models import (
     ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
-    EncaminhamentoSessao
+    EncaminhamentoSessao, RoteiroReuniaoBimestral
 )
 from .gql_queries import (
     ModuloEducacionalGQLType, GrupoFamiliarGQLType, SessaoPEPGQLType,
     PresencaSessaoGQLType, ExecucaoSessaoGQLType, SupervisaoSessaoGQLType,
-    RelatorioDistritalBimestralGQLType, EncaminhamentoSessaoGQLType
+    RelatorioDistritalBimestralGQLType, EncaminhamentoSessaoGQLType,
+    RoteiroReuniaoBimestralGQLType
 )
 from .services import (
     ModuloEducacionalService, GrupoFamiliarService, SessaoPEPService,
     PresencaSessaoService, ExecucaoSessaoService, SupervisaoSessaoService,
-    RelatorioDistritalService, EncaminhamentoService
+    RelatorioDistritalService, EncaminhamentoService, RoteiroReuniaoService
 )
 from .utils import convert_ids_in_session_data, decode_id
 
@@ -634,6 +635,100 @@ class UpdateEncaminhamentoMutation(OpenIMISMutation):
             }]
 
 
+# ========== BIMONTHLY MEETING AGENDA MUTATIONS (Ferramenta 6) ==========
+
+class CreateRoteiroReuniaoInput(OpenIMISMutation.Input):
+    """Input for creating a bimonthly meeting agenda"""
+    data_reuniao = graphene.Date(required=True)
+    horario = graphene.Time(required=True)
+    coordenador_nacional = graphene.String(required=True)
+    participantes = graphene.String(required=True)
+    resumo_agenda = graphene.JSONString(required=False)
+    desafios_solucoes = graphene.String(required=True)
+    oportunidades_praticas = graphene.String(required=True)
+    analise_dados_tendencias = graphene.String(required=True)
+    acoes_definidas = graphene.String(required=True)
+    data_proxima_reuniao = graphene.Date(required=False)
+    observacoes_proxima_reuniao = graphene.String(required=False)
+
+
+class CreateRoteiroReuniaoMutation(OpenIMISMutation):
+    """Create a new bimonthly meeting agenda"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "CreateRoteiroReuniaoMutation"
+
+    class Input(CreateRoteiroReuniaoInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            roteiro = RoteiroReuniaoService.create(data, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
+class UpdateRoteiroReuniaoInput(OpenIMISMutation.Input):
+    """Input for updating a bimonthly meeting agenda"""
+    id = graphene.Int(required=True)
+    data_reuniao = graphene.Date(required=False)
+    horario = graphene.Time(required=False)
+    coordenador_nacional = graphene.String(required=False)
+    participantes = graphene.String(required=False)
+    resumo_agenda = graphene.JSONString(required=False)
+    desafios_solucoes = graphene.String(required=False)
+    oportunidades_praticas = graphene.String(required=False)
+    analise_dados_tendencias = graphene.String(required=False)
+    acoes_definidas = graphene.String(required=False)
+    data_proxima_reuniao = graphene.Date(required=False)
+    observacoes_proxima_reuniao = graphene.String(required=False)
+
+
+class UpdateRoteiroReuniaoMutation(OpenIMISMutation):
+    """Update a bimonthly meeting agenda"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "UpdateRoteiroReuniaoMutation"
+
+    class Input(UpdateRoteiroReuniaoInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            roteiro_id = data.pop('id')
+            roteiro = RoteiroReuniaoService.update(roteiro_id, data, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
+class DeleteRoteiroReuniaoMutation(OpenIMISMutation):
+    """Delete a bimonthly meeting agenda"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "DeleteRoteiroReuniaoMutation"
+
+    class Input(OpenIMISMutation.Input):
+        id = graphene.Int(required=True)
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            RoteiroReuniaoService.delete(data['id'], user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
 # ========== ROOT MUTATION ==========
 
 class Mutation(graphene.ObjectType):
@@ -671,3 +766,8 @@ class Mutation(graphene.ObjectType):
     # Referral mutations
     create_encaminhamento = CreateEncaminhamentoMutation.Field()
     update_encaminhamento = UpdateEncaminhamentoMutation.Field()
+
+    # Bimonthly Meeting Agenda mutations (Ferramenta 6)
+    create_roteiro_reuniao = CreateRoteiroReuniaoMutation.Field()
+    update_roteiro_reuniao = UpdateRoteiroReuniaoMutation.Field()
+    delete_roteiro_reuniao = DeleteRoteiroReuniaoMutation.Field()

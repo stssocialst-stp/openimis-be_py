@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 from .models import (
     ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
-    EncaminhamentoSessao
+    EncaminhamentoSessao, RoteiroReuniaoBimestral
 )
 
 
@@ -177,6 +177,20 @@ class EncaminhamentoSessaoGQLType(DjangoObjectType):
         connection_class = ExtendedConnection
 
 
+class RoteiroReuniaoBimestralGQLType(DjangoObjectType):
+    """GraphQL Type for Bimonthly Meeting Agenda"""
+
+    class Meta:
+        model = RoteiroReuniaoBimestral
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "coordenador_nacional": ["exact", "icontains"],
+            "data_reuniao": ["exact", "lt", "lte", "gt", "gte"],
+            "data_proxima_reuniao": ["exact", "lt", "lte", "gt", "gte"],
+        }
+        connection_class = ExtendedConnection
+
+
 class Query(graphene.ObjectType):
     """Root Query for PEP+ module"""
 
@@ -233,6 +247,13 @@ class Query(graphene.ObjectType):
     encaminhamento_sessao = graphene.relay.Node.Field(EncaminhamentoSessaoGQLType)
     encaminhamentos_sessao = OrderedDjangoFilterConnectionField(
         EncaminhamentoSessaoGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
+
+    # Bimonthly Meeting Agendas
+    roteiro_reuniao_bimestral = graphene.relay.Node.Field(RoteiroReuniaoBimestralGQLType)
+    roteiros_reuniao_bimestral = OrderedDjangoFilterConnectionField(
+        RoteiroReuniaoBimestralGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
@@ -301,3 +322,7 @@ class Query(graphene.ObjectType):
             'sessao',
             'tecnico_responsavel'
         )
+
+    def resolve_roteiros_reuniao_bimestral(self, info, **kwargs):
+        """Resolve bimonthly meeting agendas query"""
+        return RoteiroReuniaoBimestral.objects.filter(validity_to__isnull=True)
