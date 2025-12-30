@@ -19,6 +19,7 @@ jobs:
         id: extract_tag
         run: |
           TAG=${GITHUB_REF_NAME}
+          echo "be_tag=${TAG}" >> $GITHUB_ENV
           echo "be_tag=${TAG}" >> $GITHUB_OUTPUT
 
       - name: Login to GitHub Container Registry
@@ -30,10 +31,9 @@ jobs:
 
       - name: Build and Push Backend Image
         run: |
-          LABEL=${{ steps.extract_tag.outputs.be_tag }}  # Pega a tag extraída
+          LABEL=${{ steps.extract_tag.outputs.be_tag }}
           echo "Building Docker image for ${LABEL}..."
           docker build . --tag ghcr.io/stssocialst-stp/kenon-backend:${LABEL}
-
           echo "Pushing Docker image..."
           docker push ghcr.io/stssocialst-stp/kenon-backend:${LABEL}
 
