@@ -136,16 +136,20 @@ jobs:
           else
             echo "No old worker container found."
           fi
-      
+
+          DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
           docker run -d \
+            -e "DB_PASSWORD=$DB_PASSWORD" \
             --name ${PROJECT_NAME}-api \
             --restart always \
             --env-file .env \
             -p 4007:8000 \
             --network kenon-stp-net \
             ghcr.io/stssocialst-stp/kenon-backend:${BE_TAG} start
-      
+
+          
           docker run -d \
+            -e "DB_PASSWORD=$DB_PASSWORD" \
             --name ${PROJECT_NAME}-worker \
             --restart always \
             --env-file .env \
