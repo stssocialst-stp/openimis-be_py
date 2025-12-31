@@ -338,3 +338,112 @@ class EncaminhamentoSessao(core_models.VersionedModel):
 
     def __str__(self):
         return f"{self.codigo_encaminhamento} - {self.nome_familia}"
+
+
+class RoteiroReuniaoBimestral(core_models.VersionedModel):
+    """
+    Bimonthly Meeting Agenda - Records bimonthly supervision meetings (Ferramenta 6)
+    """
+    id = models.AutoField(db_column='RoteiroReuniaoID', primary_key=True)
+    uuid = models.CharField(db_column='RoteiroReuniaoUUID', max_length=36, default=uuid.uuid4, unique=True)
+
+    # Informações da reunião
+    data_reuniao = models.DateField(db_column='DataReuniao')
+    horario = models.TimeField(db_column='Horario')
+    coordenador_nacional = models.CharField(db_column='CoordenadorNacional', max_length=255)
+    participantes = models.TextField(db_column='Participantes',
+                                     help_text='Lista de todos os participantes presentes na reunião')
+
+    # Resumo da agenda (checklist dos 6 tópicos padrão)
+    # Cada item: {topico: str, duracao: int, concluido: bool}
+    resumo_agenda = models.JSONField(db_column='ResumoAgenda', default=list, blank=True,
+                                     help_text='Lista de tópicos discutidos durante a reunião')
+
+    # Conteúdos da reunião
+    desafios_solucoes = models.TextField(db_column='DesafiosSolucoes',
+                                         help_text='Principais desafios enfrentados e soluções aplicadas')
+    oportunidades_praticas = models.TextField(db_column='OportunidadesPraticas',
+                                              help_text='Oportunidades identificadas e práticas bem-sucedidas')
+    analise_dados_tendencias = models.TextField(db_column='AnaliseDadosTendencias',
+                                                 help_text='Análise de dados e tendências identificadas')
+    acoes_definidas = models.TextField(db_column='AcoesDefinidas',
+                                        help_text='Ações definidas, responsáveis e prazos')
+
+    # Próxima reunião
+    data_proxima_reuniao = models.DateField(db_column='DataProximaReuniao', null=True, blank=True)
+    observacoes_proxima_reuniao = models.TextField(db_column='ObservacoesProximaReuniao',
+                                                    null=True, blank=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblRoteiroReuniaoBimestral'
+        ordering = ['-data_reuniao']
+
+    def __str__(self):
+        return f"Reunião {self.data_reuniao} - {self.coordenador_nacional}"
+
+
+class RelatorioSupervisaoBimestral(core_models.VersionedModel):
+    """
+    Bimonthly Supervision Report - Records supervisor's observations and evaluations (Ferramenta 7)
+    """
+    id = models.AutoField(db_column='RelatorioSupervisaoID', primary_key=True)
+    uuid = models.CharField(db_column='RelatorioSupervisaoUUID', max_length=36, default=uuid.uuid4, unique=True)
+
+    # 1. Identificação
+    nome_supervisores = models.TextField(db_column='NomeSupervisores',
+                                         help_text='Nome(s) do(s) supervisor(es) responsável(eis) pelo relatório')
+    num_sessoes_supervisionadas = models.IntegerField(db_column='NumSessoes', default=0,
+                                                       help_text='Quantidade total de sessões acompanhadas no bimestre')
+    num_tecnicos_supervisionados = models.IntegerField(db_column='NumTecnicos', default=0,
+                                                        help_text='Total de técnicos formadores supervisionados')
+
+    # 2. Marque seu Distrito
+    distrito = models.ForeignKey('location.Location', models.DO_NOTHING, db_column='DistritoID',
+                                 related_name='relatorios_supervisao')
+
+    # 3. Marque o Período do Relatório
+    PERIODO_CHOICES = [
+        (1, 'Janeiro e Fevereiro'),
+        (2, 'Março e Abril'),
+        (3, 'Maio e Junho'),
+        (4, 'Julho e Agosto'),
+        (5, 'Setembro e Outubro'),
+        (6, 'Novembro e Dezembro'),
+    ]
+    periodo = models.IntegerField(db_column='Periodo', choices=PERIODO_CHOICES)
+    ano = models.IntegerField(db_column='Ano')
+    periodo_inicio = models.DateField(db_column='PeriodoInicio')
+    periodo_fim = models.DateField(db_column='PeriodoFim')
+
+    # 4. Avaliação dos Técnicos Formadores
+    # Array de objetos: [{nome_tecnico: str, pontos_positivos: str, pontos_aprimorar: str}, ...]
+    avaliacoes_tecnicos = models.JSONField(db_column='AvaliacoesTecnicos', default=list, blank=True,
+                                           help_text='Avaliações dos técnicos formadores supervisionados')
+
+    # 5. Sessões do PEP+
+    # Objeto com as 10 notas dos passos: {passo_a: float, passo_b: float, ..., passo_j: float}
+    notas_sessoes_pep = models.JSONField(db_column='NotasSessoes', default=dict, blank=True,
+                                         help_text='Notas dos 10 passos das sessões supervisionadas')
+
+    # 5B. Qual módulo no Bimestre observou maior dificuldade
+    modulo_maior_dificuldade = models.ForeignKey(ModuloEducacional, models.DO_NOTHING,
+                                                  db_column='ModuloDificuldadeID',
+                                                  related_name='relatorios_dificuldade',
+                                                  null=True, blank=True,
+                                                  help_text='Módulo com menor nota (maior dificuldade)')
+
+    # 6. Observações Adicionais
+    observacoes_adicionais = models.TextField(db_column='ObservacoesAdicionais',
+                                              null=True, blank=True,
+                                              help_text='Observações complementares para discussão')
+
+    class Meta:
+        managed = True
+        db_table = 'tblRelatorioSupervisaoBimestral'
+        ordering = ['-ano', '-periodo']
+        unique_together = [['distrito', 'periodo', 'ano']]
+
+    def __str__(self):
+        periodo_str = dict(self.PERIODO_CHOICES).get(self.periodo, '')
+        return f"Supervisão {self.distrito.name if self.distrito else ''} - {periodo_str}/{self.ano}"

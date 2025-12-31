@@ -8,7 +8,7 @@ from core.services import BaseService
 from .models import (
     ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
-    EncaminhamentoSessao
+    EncaminhamentoSessao, RoteiroReuniaoBimestral
 )
 from .validations import (
     validate_sessao_planeamento, validate_presenca_sessao,
@@ -636,3 +636,190 @@ class EncaminhamentoService(BaseService):
             encaminhamento.audit_user_id = user.id_for_audit
             encaminhamento.save()
             return encaminhamento
+
+
+class RoteiroReuniaoService(BaseService):
+    """Service for Bimonthly Meeting Agenda operations"""
+
+    @classmethod
+    def create(cls, data, user):
+        """Create a new bimonthly meeting agenda"""
+        # Check permissions
+        if not user.has_perms(['pep_plus.add_roteioreuniaobimestral']):
+            raise PermissionDenied("User does not have permission to create bimonthly meeting agendas")
+
+        with transaction.atomic():
+            roteiro = RoteiroReuniaoBimestral.objects.create(
+                data_reuniao=data['data_reuniao'],
+                horario=data['horario'],
+                coordenador_nacional=data['coordenador_nacional'],
+                participantes=data['participantes'],
+                resumo_agenda=data.get('resumo_agenda', []),
+                desafios_solucoes=data['desafios_solucoes'],
+                oportunidades_praticas=data['oportunidades_praticas'],
+                analise_dados_tendencias=data['analise_dados_tendencias'],
+                acoes_definidas=data['acoes_definidas'],
+                data_proxima_reuniao=data.get('data_proxima_reuniao'),
+                observacoes_proxima_reuniao=data.get('observacoes_proxima_reuniao')
+            )
+            roteiro.audit_user_id = user.id_for_audit
+            roteiro.save()
+            return roteiro
+
+    @classmethod
+    def update(cls, roteiro_id, data, user):
+        """Update a bimonthly meeting agenda"""
+        try:
+            roteiro = RoteiroReuniaoBimestral.objects.get(id=roteiro_id, validity_to__isnull=True)
+        except RoteiroReuniaoBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'Bimonthly meeting agenda not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.change_roteioreuniaobimestral']):
+            raise PermissionDenied("User does not have permission to update bimonthly meeting agendas")
+
+        with transaction.atomic():
+            # Update fields if provided
+            if 'data_reuniao' in data:
+                roteiro.data_reuniao = data['data_reuniao']
+            if 'horario' in data:
+                roteiro.horario = data['horario']
+            if 'coordenador_nacional' in data:
+                roteiro.coordenador_nacional = data['coordenador_nacional']
+            if 'participantes' in data:
+                roteiro.participantes = data['participantes']
+            if 'resumo_agenda' in data:
+                roteiro.resumo_agenda = data['resumo_agenda']
+            if 'desafios_solucoes' in data:
+                roteiro.desafios_solucoes = data['desafios_solucoes']
+            if 'oportunidades_praticas' in data:
+                roteiro.oportunidades_praticas = data['oportunidades_praticas']
+            if 'analise_dados_tendencias' in data:
+                roteiro.analise_dados_tendencias = data['analise_dados_tendencias']
+            if 'acoes_definidas' in data:
+                roteiro.acoes_definidas = data['acoes_definidas']
+            if 'data_proxima_reuniao' in data:
+                roteiro.data_proxima_reuniao = data['data_proxima_reuniao']
+            if 'observacoes_proxima_reuniao' in data:
+                roteiro.observacoes_proxima_reuniao = data['observacoes_proxima_reuniao']
+
+            roteiro.audit_user_id = user.id_for_audit
+            roteiro.save()
+            return roteiro
+
+    @classmethod
+    def delete(cls, roteiro_id, user):
+        """Soft delete a bimonthly meeting agenda"""
+        try:
+            roteiro = RoteiroReuniaoBimestral.objects.get(id=roteiro_id, validity_to__isnull=True)
+        except RoteiroReuniaoBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'Bimonthly meeting agenda not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.delete_roteioreuniaobimestral']):
+            raise PermissionDenied("User does not have permission to delete bimonthly meeting agendas")
+
+        with transaction.atomic():
+            from django.utils import timezone
+            roteiro.validity_to = timezone.now()
+            roteiro.audit_user_id = user.id_for_audit
+            roteiro.save()
+            return roteiro
+
+
+class RelatorioSupervisaoService(BaseService):
+    """Service for Bimonthly Supervision Report operations (Ferramenta 7)"""
+
+    @classmethod
+    def create(cls, data, user):
+        """Create a new bimonthly supervision report"""
+        from .models import RelatorioSupervisaoBimestral
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.add_relatoriosupervisaobimestral']):
+            raise PermissionDenied("User does not have permission to create bimonthly supervision reports")
+
+        with transaction.atomic():
+            relatorio = RelatorioSupervisaoBimestral.objects.create(
+                nome_supervisores=data['nome_supervisores'],
+                num_sessoes_supervisionadas=data['num_sessoes_supervisionadas'],
+                num_tecnicos_supervisionados=data['num_tecnicos_supervisionados'],
+                distrito_id=data['distrito_id'],
+                periodo=data['periodo'],
+                ano=data['ano'],
+                periodo_inicio=data['periodo_inicio'],
+                periodo_fim=data['periodo_fim'],
+                avaliacoes_tecnicos=data.get('avaliacoes_tecnicos', []),
+                notas_sessoes_pep=data.get('notas_sessoes_pep', {}),
+                modulo_maior_dificuldade_id=data.get('modulo_maior_dificuldade_id'),
+                observacoes_adicionais=data.get('observacoes_adicionais')
+            )
+            relatorio.audit_user_id = user.id_for_audit
+            relatorio.save()
+            return relatorio
+
+    @classmethod
+    def update(cls, data, user):
+        """Update an existing bimonthly supervision report"""
+        from .models import RelatorioSupervisaoBimestral
+
+        try:
+            relatorio = RelatorioSupervisaoBimestral.objects.get(id=data['id'], validity_to__isnull=True)
+        except RelatorioSupervisaoBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'Bimonthly supervision report not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.change_relatoriosupervisaobimestral']):
+            raise PermissionDenied("User does not have permission to update bimonthly supervision reports")
+
+        with transaction.atomic():
+            # Update fields if provided
+            if 'nome_supervisores' in data:
+                relatorio.nome_supervisores = data['nome_supervisores']
+            if 'num_sessoes_supervisionadas' in data:
+                relatorio.num_sessoes_supervisionadas = data['num_sessoes_supervisionadas']
+            if 'num_tecnicos_supervisionados' in data:
+                relatorio.num_tecnicos_supervisionados = data['num_tecnicos_supervisionados']
+            if 'distrito_id' in data:
+                relatorio.distrito_id = data['distrito_id']
+            if 'periodo' in data:
+                relatorio.periodo = data['periodo']
+            if 'ano' in data:
+                relatorio.ano = data['ano']
+            if 'periodo_inicio' in data:
+                relatorio.periodo_inicio = data['periodo_inicio']
+            if 'periodo_fim' in data:
+                relatorio.periodo_fim = data['periodo_fim']
+            if 'avaliacoes_tecnicos' in data:
+                relatorio.avaliacoes_tecnicos = data['avaliacoes_tecnicos']
+            if 'notas_sessoes_pep' in data:
+                relatorio.notas_sessoes_pep = data['notas_sessoes_pep']
+            if 'modulo_maior_dificuldade_id' in data:
+                relatorio.modulo_maior_dificuldade_id = data['modulo_maior_dificuldade_id']
+            if 'observacoes_adicionais' in data:
+                relatorio.observacoes_adicionais = data['observacoes_adicionais']
+
+            relatorio.audit_user_id = user.id_for_audit
+            relatorio.save()
+            return relatorio
+
+    @classmethod
+    def delete(cls, relatorio_id, user):
+        """Soft delete a bimonthly supervision report"""
+        from .models import RelatorioSupervisaoBimestral
+
+        try:
+            relatorio = RelatorioSupervisaoBimestral.objects.get(id=relatorio_id, validity_to__isnull=True)
+        except RelatorioSupervisaoBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'Bimonthly supervision report not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.delete_relatoriosupervisaobimestral']):
+            raise PermissionDenied("User does not have permission to delete bimonthly supervision reports")
+
+        with transaction.atomic():
+            from django.utils import timezone
+            relatorio.validity_to = timezone.now()
+            relatorio.audit_user_id = user.id_for_audit
+            relatorio.save()
+            return relatorio
