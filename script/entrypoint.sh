@@ -18,9 +18,9 @@ show_help() {
 
 init(){
   # Install PEP+ module if it exists (for development)
-  if [ -d "/app/openimis-be-pep_plus_py" ]; then
+  if [ -d "/openimis-be/openimis-be-pep_plus_py" ]; then
     echo "Installing PEP+ module..."
-    pip install -e /app/openimis-be-pep_plus_py
+    pip install -e /openimis-be/openimis-be-pep_plus_py
 
     # Add pep_plus to openimis config if not already there
     CONF_FILE="${OPENIMIS_CONF_JSON:-/openimis-be/openimis.json}"
@@ -41,7 +41,7 @@ try:
         insert_pos = len(config['modules'])
         config['modules'].insert(insert_pos, {
             "name": "pep_plus",
-            "pip": "-e /app/openimis-be-pep_plus_py"
+            "pip": "-e /openimis-be/openimis-be-pep_plus_py"
         })
 
         with open(conf_file, 'w') as f:
