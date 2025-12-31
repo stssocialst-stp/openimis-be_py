@@ -1,0 +1,50 @@
+name: Build and Deploy Backend to Production on Tag Creation
+on:
+  push:
+    tags:
+      - 'prod-backend-v*'
+
+jobs:
+  publish-docker-prod-image:
+    runs-on: ubuntu-latest
+    outputs:
+      be_tag: ${{ steps.extract_tag.outputs.be_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Extract tag name
+        id: extract_tag
+        run: |
+          TAG=${GITHUB_REF_NAME}
+          echo "be_tag=${TAG}" >> $GITHUB_ENV
+          echo "be_tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USER }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build and Push Backend Image
+        run: |
+          LABEL=${{ steps.extract_tag.outputs.be_tag }}
+          echo "Building Docker image for ${LABEL}..."
+          docker build . --tag ghcr.io/stssocialst-stp/kenon-backend:${LABEL}
+          echo "Pushing Docker image..."
+          docker push ghcr.io/stssocialst-stp/kenon-backend:${LABEL}
+
+  trigger-deploy:
+    needs: publish-docker-prod-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger workflow in openimis-dist_dkr
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.GHCR_TOKEN }}
+          repository: stssocialst-stp/openimis-dist_dkr
+          event-type: deploy-kenon-prod-backend
+          client-payload: '{ "be_tag": "${{ needs.publish-docker-prod-image.outputs.be_tag }}"}'
