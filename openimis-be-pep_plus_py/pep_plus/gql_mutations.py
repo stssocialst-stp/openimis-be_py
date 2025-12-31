@@ -146,8 +146,8 @@ class UpdateGrupoFamiliarInput(OpenIMISMutation.Input):
     id = graphene.Int(required=True)
     codigo = graphene.String(required=False)
     nome = graphene.String(required=False)
-    distrito_id = graphene.Int(required=False)
-    localidade_id = graphene.Int(required=False)
+    distrito_id = graphene.String(required=False)
+    localidade_id = graphene.String(required=False)
     numero_familias = graphene.Int(required=False)
     ativo = graphene.Boolean(required=False)
 
@@ -164,7 +164,9 @@ class UpdateGrupoFamiliarMutation(OpenIMISMutation):
     def async_mutate(cls, user, **data):
         try:
             grupo_id = data.pop('id')
-            grupo = GrupoFamiliarService.update(grupo_id, data, user)
+            # Convert Relay IDs to database IDs
+            converted_data = convert_ids_in_session_data(data)
+            grupo = GrupoFamiliarService.update(grupo_id, converted_data, user)
             return None
         except Exception as exc:
             return [{
@@ -241,17 +243,17 @@ class CreateSessaoPEPMutation(OpenIMISMutation):
 class UpdateSessaoPEPInput(OpenIMISMutation.Input):
     """Input for updating a PEP session"""
     id = graphene.Int(required=True)
-    coordenador_distrital_id = graphene.Int(required=False)
-    tecnico_social_id = graphene.Int(required=False)
-    distrito_id = graphene.Int(required=False)
-    modulo_id = graphene.Int(required=False)
+    coordenador_distrital_id = graphene.String(required=False)
+    tecnico_social_id = graphene.String(required=False)
+    distrito_id = graphene.String(required=False)
+    modulo_id = graphene.String(required=False)
     mes_modulo_anterior = graphene.String(required=False)
     dia_semana = graphene.String(required=False)
     data_sessao = graphene.Date(required=False)
     hora_sessao = graphene.Time(required=False)
     zona = graphene.String(required=False)
     numero_familias = graphene.Int(required=False)
-    grupo_familia_id = graphene.Int(required=False)
+    grupo_familia_id = graphene.String(required=False)
     tempo_deslocamento = graphene.Int(required=False)
     feedback_documentacao = graphene.String(required=False)
     tem_supervisao = graphene.Boolean(required=False)
@@ -271,7 +273,9 @@ class UpdateSessaoPEPMutation(OpenIMISMutation):
     def async_mutate(cls, user, **data):
         try:
             sessao_id = data.pop('id')
-            sessao = SessaoPEPService.update(sessao_id, data, user)
+            # Convert Relay IDs to database IDs
+            converted_data = convert_ids_in_session_data(data)
+            sessao = SessaoPEPService.update(sessao_id, converted_data, user)
             return None
         except Exception as exc:
             return [{
@@ -610,7 +614,7 @@ class UpdateEncaminhamentoInput(OpenIMISMutation.Input):
     """Input for updating a referral"""
     id = graphene.Int(required=True)
     status = graphene.String(required=False)
-    tecnico_responsavel_id = graphene.Int(required=False)
+    tecnico_responsavel_id = graphene.String(required=False)
     observacoes = graphene.String(required=False)
 
 
@@ -626,7 +630,9 @@ class UpdateEncaminhamentoMutation(OpenIMISMutation):
     def async_mutate(cls, user, **data):
         try:
             encaminhamento_id = data.pop('id')
-            encaminhamento = EncaminhamentoService.update(encaminhamento_id, data, user)
+            # Convert Relay IDs to database IDs
+            converted_data = convert_ids_in_session_data(data)
+            encaminhamento = EncaminhamentoService.update(encaminhamento_id, converted_data, user)
             return None
         except Exception as exc:
             return [{
@@ -736,14 +742,14 @@ class CreateRelatorioSupervisaoInput(OpenIMISMutation.Input):
     nome_supervisores = graphene.String(required=True)
     num_sessoes_supervisionadas = graphene.Int(required=True)
     num_tecnicos_supervisionados = graphene.Int(required=True)
-    distrito_id = graphene.Int(required=True)
+    distrito_id = graphene.String(required=True)
     periodo = graphene.Int(required=True)
     ano = graphene.Int(required=True)
     periodo_inicio = graphene.Date(required=True)
     periodo_fim = graphene.Date(required=True)
     avaliacoes_tecnicos = graphene.JSONString(required=False)
     notas_sessoes_pep = graphene.JSONString(required=False)
-    modulo_maior_dificuldade_id = graphene.Int(required=False)
+    modulo_maior_dificuldade_id = graphene.String(required=False)
     observacoes_adicionais = graphene.String(required=False)
 
 
@@ -759,7 +765,9 @@ class CreateRelatorioSupervisaoMutation(OpenIMISMutation):
     def async_mutate(cls, user, **data):
         try:
             from .services import RelatorioSupervisaoService
-            relatorio = RelatorioSupervisaoService.create(data, user)
+            # Convert Relay IDs to database IDs
+            converted_data = convert_ids_in_session_data(data)
+            relatorio = RelatorioSupervisaoService.create(converted_data, user)
             return None
         except Exception as exc:
             return [{
@@ -774,14 +782,14 @@ class UpdateRelatorioSupervisaoInput(OpenIMISMutation.Input):
     nome_supervisores = graphene.String(required=False)
     num_sessoes_supervisionadas = graphene.Int(required=False)
     num_tecnicos_supervisionados = graphene.Int(required=False)
-    distrito_id = graphene.Int(required=False)
+    distrito_id = graphene.String(required=False)
     periodo = graphene.Int(required=False)
     ano = graphene.Int(required=False)
     periodo_inicio = graphene.Date(required=False)
     periodo_fim = graphene.Date(required=False)
     avaliacoes_tecnicos = graphene.JSONString(required=False)
     notas_sessoes_pep = graphene.JSONString(required=False)
-    modulo_maior_dificuldade_id = graphene.Int(required=False)
+    modulo_maior_dificuldade_id = graphene.String(required=False)
     observacoes_adicionais = graphene.String(required=False)
 
 
@@ -797,7 +805,9 @@ class UpdateRelatorioSupervisaoMutation(OpenIMISMutation):
     def async_mutate(cls, user, **data):
         try:
             from .services import RelatorioSupervisaoService
-            relatorio = RelatorioSupervisaoService.update(data, user)
+            # Convert Relay IDs to database IDs
+            converted_data = convert_ids_in_session_data(data)
+            relatorio = RelatorioSupervisaoService.update(converted_data, user)
             return None
         except Exception as exc:
             return [{
