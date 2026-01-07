@@ -499,9 +499,11 @@ class ExecucaoSessaoService(BaseService):
                 formador_id=data['formador_id'],
                 supervisor_id=data.get('supervisor_id'),
                 localidade_id=data.get('localidade_id'),
-                numero_participantes_compromissos=data.get('numero_participantes_compromissos', 0),
+                numero_cuidadores=data.get('numero_cuidadores', '0'),
                 praticas_positivas=data.get('praticas_positivas', []),
+                outras_praticas_positivas=data.get('outras_praticas_positivas'),
                 desafios_transmissao=data.get('desafios_transmissao', []),
+                outros_desafios=data.get('outros_desafios'),
                 necessita_encaminhamento=data.get('necessita_encaminhamento', False),
                 auto_avaliacao_pontos_fortes=data.get('auto_avaliacao_pontos_fortes', []),
                 auto_avaliacao_pontos_atencao=data.get('auto_avaliacao_pontos_atencao', []),
@@ -531,10 +533,12 @@ class ExecucaoSessaoService(BaseService):
             raise PermissionDenied("User does not have permission to update execution records")
 
         with transaction.atomic():
-            execucao.numero_participantes_compromissos = data.get('numero_participantes_compromissos',
-                                                                   execucao.numero_participantes_compromissos)
+            execucao.numero_cuidadores = data.get('numero_cuidadores', execucao.numero_cuidadores)
             execucao.praticas_positivas = data.get('praticas_positivas', execucao.praticas_positivas)
+            execucao.outras_praticas_positivas = data.get('outras_praticas_positivas',
+                                                          execucao.outras_praticas_positivas)
             execucao.desafios_transmissao = data.get('desafios_transmissao', execucao.desafios_transmissao)
+            execucao.outros_desafios = data.get('outros_desafios', execucao.outros_desafios)
             execucao.necessita_encaminhamento = data.get('necessita_encaminhamento',
                                                          execucao.necessita_encaminhamento)
             execucao.auto_avaliacao_pontos_fortes = data.get('auto_avaliacao_pontos_fortes',

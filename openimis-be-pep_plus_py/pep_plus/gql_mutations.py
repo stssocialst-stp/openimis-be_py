@@ -488,18 +488,31 @@ class RegistrarPresencasBatchMutation(OpenIMISMutation):
 # ========== SESSION EXECUTION MUTATIONS (Ferramenta 3) ==========
 
 class CreateExecucaoSessaoInput(OpenIMISMutation.Input):
-    """Input for creating a session execution record"""
+    """Input for creating a session execution record (Ferramenta 3)"""
+    # Detalhes do planejamento da sessão
     sessao_id = graphene.String(required=True)
     formador_id = graphene.String(required=True)
     supervisor_id = graphene.String(required=False)
     localidade_id = graphene.String(required=False)
-    numero_participantes_compromissos = graphene.Int(required=False)
+
+    # Detalhes da execução
+    numero_cuidadores = graphene.String(required=False)  # Opções: "0", "1-5", "6-10", "15+"
+
+    # Práticas positivas: [{ descricao: "...", confirmacao: "Sim/Não/N/A" }]
     praticas_positivas = graphene.JSONString(required=False)
+    outras_praticas_positivas = graphene.String(required=False)
+
+    # Desafios: [{ descricao: "...", confirmacao: "Sim/Não/N/A" }]
     desafios_transmissao = graphene.JSONString(required=False)
+    outros_desafios = graphene.String(required=False)
+
     necessita_encaminhamento = graphene.Boolean(required=False)
+
+    # Auto-avaliação: [{ descricao: "...", avaliacao: "1/2/3/4/5" }]
     auto_avaliacao_pontos_fortes = graphene.JSONString(required=False)
     auto_avaliacao_pontos_atencao = graphene.JSONString(required=False)
     avaliacao_metodologia = graphene.JSONString(required=False)
+
     observacoes = graphene.String(required=False)
 
 
@@ -528,13 +541,25 @@ class CreateExecucaoSessaoMutation(OpenIMISMutation):
 class UpdateExecucaoSessaoInput(OpenIMISMutation.Input):
     """Input for updating a session execution record"""
     id = graphene.Int(required=True)
-    numero_participantes_compromissos = graphene.Int(required=False)
+
+    # Detalhes da execução
+    numero_cuidadores = graphene.String(required=False)  # Opções: "0", "1-5", "6-10", "15+"
+
+    # Práticas positivas
     praticas_positivas = graphene.JSONString(required=False)
+    outras_praticas_positivas = graphene.String(required=False)
+
+    # Desafios
     desafios_transmissao = graphene.JSONString(required=False)
+    outros_desafios = graphene.String(required=False)
+
     necessita_encaminhamento = graphene.Boolean(required=False)
+
+    # Auto-avaliação
     auto_avaliacao_pontos_fortes = graphene.JSONString(required=False)
     auto_avaliacao_pontos_atencao = graphene.JSONString(required=False)
     avaliacao_metodologia = graphene.JSONString(required=False)
+
     observacoes = graphene.String(required=False)
 
 

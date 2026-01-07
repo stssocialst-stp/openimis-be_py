@@ -51,11 +51,12 @@ class PresencaSessaoAdmin(admin.ModelAdmin):
 
 @admin.register(ExecucaoSessao)
 class ExecucaoSessaoAdmin(admin.ModelAdmin):
-    list_display = ('sessao', 'formador', 'data_execucao', 'localidade', 'necessita_encaminhamento')
-    list_filter = ('necessita_encaminhamento', 'data_execucao')
-    search_fields = ('formador__username',)
+    list_display = ('sessao', 'formador', 'numero_cuidadores', 'data_execucao', 'localidade', 'necessita_encaminhamento')
+    list_filter = ('necessita_encaminhamento', 'numero_cuidadores', 'data_execucao')
+    search_fields = ('formador__username', 'sessao__codigo_sessao')
     date_hierarchy = 'data_execucao'
     ordering = ('-data_execucao',)
+    readonly_fields = ('data_execucao',)
 
 
 @admin.register(SupervisaoSessao)

@@ -1,4 +1,4 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.1
 Name: openimis-be-pep_plus
 Version: 1.0.0
 Summary: The openIMIS Backend PEP+ (Programa de Educação Positiva) module.
@@ -20,21 +20,12 @@ Requires-Dist: django-db-signals
 Requires-Dist: djangorestframework
 Requires-Dist: openimis-be-core
 Requires-Dist: openimis-be-location
-Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: description
-Dynamic: description-content-type
-Dynamic: home-page
-Dynamic: license
-Dynamic: requires-dist
-Dynamic: summary
 
 # openIMIS Backend PEP+ Module
 
 ## Description
 
-This module implements the PEP+ (Programa de Educação Positiva) system for managing educational sessions with families, including:
+This module implements the PEP+ (Programa de EducaÃ§Ã£o Positiva) system for managing educational sessions with families, including:
 
 - Session planning (Ferramenta 1)
 - Attendance registration (Ferramenta 2)

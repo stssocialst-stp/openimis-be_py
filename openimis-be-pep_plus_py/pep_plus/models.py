@@ -165,6 +165,14 @@ class ExecucaoSessao(core_models.VersionedModel):
     """
     Session Execution - Tracks session implementation (Ferramenta 3)
     """
+
+    NUMERO_CUIDADORES_CHOICES = [
+        ('0', '0 cuidadores'),
+        ('1-5', '1 a 5 cuidadores'),
+        ('6-10', '6 a 10 cuidadores'),
+        ('15+', 'Mais de 15 cuidadores'),
+    ]
+
     id = models.AutoField(db_column='ExecucaoSessaoID', primary_key=True)
     uuid = models.CharField(db_column='ExecucaoSessaoUUID', max_length=36, default=uuid.uuid4, unique=True)
 
@@ -178,19 +186,68 @@ class ExecucaoSessao(core_models.VersionedModel):
     localidade = models.ForeignKey(Location, db_column='LocalidadeID', on_delete=models.PROTECT,
                                    null=True, blank=True)
 
-    # Avaliação da execução
-    numero_participantes_compromissos = models.IntegerField(db_column='NumeroParticipantesCompromissos',
-                                                            default=0)
-    praticas_positivas = models.JSONField(db_column='PraticasPositivas', default=list, blank=True)
-    desafios_transmissao = models.JSONField(db_column='DesafiosTransmissao', default=list, blank=True)
-    necessita_encaminhamento = models.BooleanField(db_column='NecessitaEncaminhamento', default=False)
+    # Detalhes da execução
+    numero_cuidadores = models.CharField(
+        db_column='NumeroCuidadores',
+        max_length=10,
+        choices=NUMERO_CUIDADORES_CHOICES,
+        default='0',
+        help_text='Número de cuidadores presentes'
+    )
 
-    # Auto-avaliação do formador
-    auto_avaliacao_pontos_fortes = models.JSONField(db_column='AutoAvaliacaoPontosFortes',
-                                                    default=list, blank=True)
-    auto_avaliacao_pontos_atencao = models.JSONField(db_column='AutoAvaliacaoPontosAtencao',
-                                                     default=list, blank=True)
-    avaliacao_metodologia = models.JSONField(db_column='AvaliacaoMetodologia', default=dict, blank=True)
+    # Práticas positivas: [{ descricao: "...", confirmacao: "Sim/Não/N/A" }]
+    praticas_positivas = models.JSONField(
+        db_column='PraticasPositivas',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, confirmacao: Sim/Não/N/A }]'
+    )
+    outras_praticas_positivas = models.TextField(
+        db_column='OutrasPraticasPositivas',
+        null=True,
+        blank=True,
+        help_text='Outras práticas positivas observadas'
+    )
+
+    # Desafios na transmissão: mesma estrutura das práticas positivas
+    desafios_transmissao = models.JSONField(
+        db_column='DesafiosTransmissao',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, confirmacao: Sim/Não/N/A }]'
+    )
+    outros_desafios = models.TextField(
+        db_column='OutrosDesafios',
+        null=True,
+        blank=True,
+        help_text='Outros desafios identificados'
+    )
+
+    necessita_encaminhamento = models.BooleanField(
+        db_column='NecessitaEncaminhamento',
+        default=False,
+        help_text='Indica se há necessidade de encaminhamento'
+    )
+
+    # Auto-avaliação do formador: [{ descricao: "...", avaliacao: "1/2/3/4/5" }]
+    auto_avaliacao_pontos_fortes = models.JSONField(
+        db_column='AutoAvaliacaoPontosFortes',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, avaliacao: 1-5 }]'
+    )
+    auto_avaliacao_pontos_atencao = models.JSONField(
+        db_column='AutoAvaliacaoPontosAtencao',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, avaliacao: 1-5 }]'
+    )
+    avaliacao_metodologia = models.JSONField(
+        db_column='AvaliacaoMetodologia',
+        default=dict,
+        blank=True,
+        help_text='Avaliação da metodologia utilizada'
+    )
 
     observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
     data_execucao = models.DateTimeField(db_column='DataExecucao', auto_now_add=True)

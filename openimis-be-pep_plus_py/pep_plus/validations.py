@@ -179,12 +179,14 @@ def validate_execucao_sessao(data):
             'message': 'Formador é obrigatório'
         })
 
-    # Número de participantes que praticaram compromissos
-    if data.get('numero_participantes_compromissos') is None:
-        errors.append({
-            'field': 'numero_participantes_compromissos',
-            'message': 'Número de participantes que praticaram compromissos é obrigatório'
-        })
+    # Validar numero_cuidadores se fornecido
+    if data.get('numero_cuidadores'):
+        opcoes_validas = ['0', '1-5', '6-10', '15+']
+        if data.get('numero_cuidadores') not in opcoes_validas:
+            errors.append({
+                'field': 'numero_cuidadores',
+                'message': f'Número de cuidadores deve ser um de: {", ".join(opcoes_validas)}'
+            })
 
     return errors
 

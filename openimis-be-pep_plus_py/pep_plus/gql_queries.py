@@ -114,6 +114,7 @@ class ExecucaoSessaoGQLType(DjangoObjectType):
             "formador_id": ["exact"],
             "supervisor_id": ["exact"],
             "localidade_id": ["exact"],
+            "numero_cuidadores": ["exact"],
             "necessita_encaminhamento": ["exact"],
             "data_execucao": ["exact", "lt", "lte", "gt", "gte"],
         }
