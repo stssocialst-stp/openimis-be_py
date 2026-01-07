@@ -129,8 +129,8 @@ class PresencaSessao(core_models.VersionedModel):
     """
     ESTADO_CHOICES = [
         ('PRES', 'Presente'),
-        ('AUSE', 'Ausente'),
-        ('JUST', 'Justificado'),
+        ('FALT', 'Faltou'),
+        ('ENCA', 'Encaminhado'),
     ]
 
     id = models.AutoField(db_column='PresencaSessaoID', primary_key=True)
@@ -140,12 +140,16 @@ class PresencaSessao(core_models.VersionedModel):
                                related_name='presencas')
     # Usando CharField para ID da família para flexibilidade de integração
     familia_id = models.CharField(db_column='FamiliaID', max_length=50)
-    nome_familia = models.CharField(db_column='NomeFamilia', max_length=255)
+    nome_familia = models.CharField(db_column='NomeFamilia', max_length=255, null=True, blank=True)
     grupo_id = models.CharField(db_column='GrupoID', max_length=50, null=True, blank=True)
 
     estado = models.CharField(db_column='Estado', max_length=4, choices=ESTADO_CHOICES, default='PRES')
     codigo_encaminhamento = models.CharField(db_column='CodigoEncaminhamento', max_length=50,
-                                            null=True, blank=True)
+                                            null=True, blank=True,
+                                            help_text='Código de encaminhamento quando estado=ENCA')
+    nome_instituicao = models.CharField(db_column='NomeInstituicao', max_length=255,
+                                       null=True, blank=True,
+                                       help_text='Nome da instituição quando estado=ENCA')
     observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
 
     class Meta:

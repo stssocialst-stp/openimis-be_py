@@ -356,10 +356,11 @@ class CreatePresencaSessaoInput(OpenIMISMutation.Input):
     """Input for creating an attendance record"""
     sessao_id = graphene.String(required=True)
     familia_id = graphene.String(required=True)
-    nome_familia = graphene.String(required=True)
+    nome_familia = graphene.String(required=False)
     grupo_id = graphene.String(required=False)
     estado = graphene.String(required=False)
     codigo_encaminhamento = graphene.String(required=False)
+    nome_instituicao = graphene.String(required=False)
     observacoes = graphene.String(required=False)
 
 
@@ -390,6 +391,7 @@ class UpdatePresencaSessaoInput(OpenIMISMutation.Input):
     id = graphene.Int(required=True)
     estado = graphene.String(required=False)
     codigo_encaminhamento = graphene.String(required=False)
+    nome_instituicao = graphene.String(required=False)
     observacoes = graphene.String(required=False)
 
 
@@ -426,6 +428,55 @@ class DeletePresencaSessaoMutation(OpenIMISMutation):
     def async_mutate(cls, user, **data):
         try:
             PresencaSessaoService.delete(data['id'], user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
+# Batch mutation for registering attendance with session details
+class PresencaItemInput(graphene.InputObjectType):
+    """Input for a single family attendance record"""
+    familia_id = graphene.String(required=True)
+    estado = graphene.String(required=True)  # PRES, FALT, ENCA
+    codigo_encaminhamento = graphene.String(required=False)
+    nome_instituicao = graphene.String(required=False)
+
+
+class RegistrarPresencasBatchInput(OpenIMISMutation.Input):
+    """Input for batch attendance registration with session details (Ferramenta 2)"""
+    # Detalhes da sessão
+    sessao_id = graphene.String(required=True)
+    data_sessao = graphene.Date(required=True)
+    distrito_id = graphene.String(required=True)
+    formador_id = graphene.String(required=True)
+    localidade_id = graphene.String(required=False)
+    nome_modulo = graphene.String(required=True)
+    mes_modulo_anterior = graphene.String(required=False)
+    codigo_sessao = graphene.String(required=True)
+    grupo_familia_id = graphene.String(required=True)
+
+    # Array de presenças
+    presencas = graphene.List(PresencaItemInput, required=True)
+
+
+class RegistrarPresencasBatchMutation(OpenIMISMutation):
+    """Batch register attendance records with session details (Ferramenta 2)"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "RegistrarPresencasBatchMutation"
+
+    class Input(RegistrarPresencasBatchInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            from .services import PresencaSessaoService
+            # Convert Relay IDs to database IDs
+            converted_data = convert_ids_in_session_data(data)
+            result = PresencaSessaoService.registrar_presencas_batch(converted_data, user)
             return None
         except Exception as exc:
             return [{
@@ -869,6 +920,7 @@ class Mutation(graphene.ObjectType):
     create_presenca_sessao = CreatePresencaSessaoMutation.Field()
     update_presenca_sessao = UpdatePresencaSessaoMutation.Field()
     delete_presenca_sessao = DeletePresencaSessaoMutation.Field()
+    registrar_presencas_batch = RegistrarPresencasBatchMutation.Field()
 
     # Session Execution mutations (Ferramenta 3)
     create_execucao_sessao = CreateExecucaoSessaoMutation.Field()

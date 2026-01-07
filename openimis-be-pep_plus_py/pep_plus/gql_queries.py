@@ -93,6 +93,7 @@ class PresencaSessaoGQLType(DjangoObjectType):
             "grupo_id": ["exact"],
             "estado": ["exact"],
             "codigo_encaminhamento": ["exact", "icontains"],
+            "nome_instituicao": ["exact", "icontains"],
         }
         connection_class = ExtendedConnection
 

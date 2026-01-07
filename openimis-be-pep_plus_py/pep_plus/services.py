@@ -320,10 +320,11 @@ class PresencaSessaoService(BaseService):
             presenca = PresencaSessao.objects.create(
                 sessao_id=data['sessao_id'],
                 familia_id=data['familia_id'],
-                nome_familia=data['nome_familia'],
+                nome_familia=data.get('nome_familia'),
                 grupo_id=data.get('grupo_id'),
                 estado=data.get('estado', 'PRES'),
                 codigo_encaminhamento=data.get('codigo_encaminhamento'),
+                nome_instituicao=data.get('nome_instituicao'),
                 observacoes=data.get('observacoes')
             )
             presenca.audit_user_id = user.id_for_audit
@@ -345,6 +346,7 @@ class PresencaSessaoService(BaseService):
         with transaction.atomic():
             presenca.estado = data.get('estado', presenca.estado)
             presenca.codigo_encaminhamento = data.get('codigo_encaminhamento', presenca.codigo_encaminhamento)
+            presenca.nome_instituicao = data.get('nome_instituicao', presenca.nome_instituicao)
             presenca.observacoes = data.get('observacoes', presenca.observacoes)
             presenca.audit_user_id = user.id_for_audit
             presenca.save()
@@ -387,10 +389,11 @@ class PresencaSessaoService(BaseService):
                 presenca = PresencaSessao.objects.create(
                     sessao_id=sessao_id,
                     familia_id=familia_data['familia_id'],
-                    nome_familia=familia_data['nome_familia'],
+                    nome_familia=familia_data.get('nome_familia'),
                     grupo_id=familia_data.get('grupo_id'),
                     estado=familia_data.get('estado', 'PRES'),
                     codigo_encaminhamento=familia_data.get('codigo_encaminhamento'),
+                    nome_instituicao=familia_data.get('nome_instituicao'),
                     observacoes=familia_data.get('observacoes')
                 )
                 presenca.audit_user_id = user.id_for_audit
@@ -398,6 +401,79 @@ class PresencaSessaoService(BaseService):
                 presencas.append(presenca)
 
             return presencas
+
+    @classmethod
+    def registrar_presencas_batch(cls, data, user):
+        """Batch register attendance with session execution details (Ferramenta 2)"""
+        from .models import SessaoPEP, ExecucaoSessao
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.add_presencasessao']):
+            raise PermissionDenied("User does not have permission to create attendance records")
+
+        # Validate session exists
+        try:
+            sessao = SessaoPEP.objects.get(id=data['sessao_id'], validity_to__isnull=True)
+        except SessaoPEP.DoesNotExist:
+            raise ValidationError([{'message': 'Session not found'}])
+
+        # Validate session details match
+        if sessao.distrito_id != data['distrito_id']:
+            raise ValidationError([{'message': 'District ID does not match session district'}])
+        if sessao.grupo_familia_id != data['grupo_familia_id']:
+            raise ValidationError([{'message': 'Family group ID does not match session family group'}])
+
+        with transaction.atomic():
+            # Update SessaoPEP with actual execution data
+            sessao.data_sessao = data['data_sessao']
+            sessao.nome_modulo = data['nome_modulo']
+            if 'mes_modulo_anterior' in data:
+                sessao.mes_modulo_anterior = data['mes_modulo_anterior']
+            sessao.audit_user_id = user.id_for_audit
+            sessao.save()
+
+            # Create or update ExecucaoSessao with session details
+            execucao, created = ExecucaoSessao.objects.update_or_create(
+                sessao=sessao,
+                defaults={
+                    'formador_id': data['formador_id'],
+                    'localidade_id': data.get('localidade_id'),
+                    'data_execucao': data['data_sessao']
+                }
+            )
+            if created:
+                execucao.audit_user_id = user.id_for_audit
+                execucao.save()
+
+            # Register all family attendances
+            presencas = []
+            for presenca_item in data['presencas']:
+                # Delete existing attendance for this family if exists
+                PresencaSessao.objects.filter(
+                    sessao=sessao,
+                    familia_id=presenca_item['familia_id'],
+                    validity_to__isnull=True
+                ).delete()
+
+                # Create new attendance
+                presenca = PresencaSessao.objects.create(
+                    sessao=sessao,
+                    familia_id=presenca_item['familia_id'],
+                    nome_familia=presenca_item.get('nome_familia'),
+                    grupo_id=sessao.grupo_familia_id,  # Get from session
+                    estado=presenca_item['estado'],
+                    codigo_encaminhamento=presenca_item.get('codigo_encaminhamento'),
+                    nome_instituicao=presenca_item.get('nome_instituicao'),
+                    observacoes=presenca_item.get('observacoes')
+                )
+                presenca.audit_user_id = user.id_for_audit
+                presenca.save()
+                presencas.append(presenca)
+
+            return {
+                'execucao': execucao,
+                'presencas': presencas
+            }
 
 
 class ExecucaoSessaoService(BaseService):
