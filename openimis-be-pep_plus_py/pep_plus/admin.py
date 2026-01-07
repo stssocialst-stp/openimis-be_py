@@ -34,9 +34,9 @@ class GrupoFamiliarAdmin(admin.ModelAdmin):
 
 @admin.register(SessaoPEP)
 class SessaoPEPAdmin(admin.ModelAdmin):
-    list_display = ('codigo_sessao', 'modulo', 'grupo_familia', 'data_sessao', 'status', 'tem_supervisao')
-    list_filter = ('status', 'tem_supervisao', 'distrito', 'data_sessao')
-    search_fields = ('codigo_sessao',)
+    list_display = ('codigo_sessao', 'nome_modulo', 'grupo_familia', 'data_planejamento', 'data_sessao', 'status', 'tem_supervisao')
+    list_filter = ('status', 'tem_supervisao', 'distrito', 'data_sessao', 'data_planejamento')
+    search_fields = ('codigo_sessao', 'nome_modulo')
     date_hierarchy = 'data_sessao'
     ordering = ('-data_sessao',)
 

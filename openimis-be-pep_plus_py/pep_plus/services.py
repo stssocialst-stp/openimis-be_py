@@ -181,10 +181,11 @@ class SessaoPEPService(BaseService):
         with transaction.atomic():
             sessao = SessaoPEP.objects.create(
                 codigo_sessao=data['codigo_sessao'],
+                data_planejamento=data['data_planejamento'],
                 coordenador_distrital_id=data['coordenador_distrital_id'],
                 tecnico_social_id=data['tecnico_social_id'],
                 distrito_id=data['distrito_id'],
-                modulo_id=data['modulo_id'],
+                nome_modulo=data['nome_modulo'],
                 mes_modulo_anterior=data.get('mes_modulo_anterior'),
                 dia_semana=data['dia_semana'],
                 data_sessao=data['data_sessao'],
@@ -220,10 +221,11 @@ class SessaoPEPService(BaseService):
             raise ValidationError(errors)
 
         with transaction.atomic():
+            sessao.data_planejamento = data.get('data_planejamento', sessao.data_planejamento)
             sessao.coordenador_distrital_id = data.get('coordenador_distrital_id', sessao.coordenador_distrital_id)
             sessao.tecnico_social_id = data.get('tecnico_social_id', sessao.tecnico_social_id)
             sessao.distrito_id = data.get('distrito_id', sessao.distrito_id)
-            sessao.modulo_id = data.get('modulo_id', sessao.modulo_id)
+            sessao.nome_modulo = data.get('nome_modulo', sessao.nome_modulo)
             sessao.mes_modulo_anterior = data.get('mes_modulo_anterior', sessao.mes_modulo_anterior)
             sessao.dia_semana = data.get('dia_semana', sessao.dia_semana)
             sessao.data_sessao = data.get('data_sessao', sessao.data_sessao)

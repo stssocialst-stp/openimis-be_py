@@ -200,10 +200,11 @@ class DeleteGrupoFamiliarMutation(OpenIMISMutation):
 class CreateSessaoPEPInput(OpenIMISMutation.Input):
     """Input for creating a PEP session"""
     codigo_sessao = graphene.String(required=True)
+    data_planejamento = graphene.Date(required=True)
     coordenador_distrital_id = graphene.String(required=True)
     tecnico_social_id = graphene.String(required=True)
     distrito_id = graphene.String(required=True)
-    modulo_id = graphene.String(required=True)
+    nome_modulo = graphene.String(required=True)
     mes_modulo_anterior = graphene.String(required=False)
     dia_semana = graphene.String(required=True)
     data_sessao = graphene.Date(required=True)
@@ -243,10 +244,11 @@ class CreateSessaoPEPMutation(OpenIMISMutation):
 class UpdateSessaoPEPInput(OpenIMISMutation.Input):
     """Input for updating a PEP session"""
     id = graphene.Int(required=True)
+    data_planejamento = graphene.Date(required=False)
     coordenador_distrital_id = graphene.String(required=False)
     tecnico_social_id = graphene.String(required=False)
     distrito_id = graphene.String(required=False)
-    modulo_id = graphene.String(required=False)
+    nome_modulo = graphene.String(required=False)
     mes_modulo_anterior = graphene.String(required=False)
     dia_semana = graphene.String(required=False)
     data_sessao = graphene.Date(required=False)

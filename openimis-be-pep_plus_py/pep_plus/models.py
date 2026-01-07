@@ -72,8 +72,9 @@ class SessaoPEP(core_models.VersionedModel):
     id = models.AutoField(db_column='SessaoPEPID', primary_key=True)
     uuid = models.CharField(db_column='SessaoPEPUUID', max_length=36, default=uuid.uuid4, unique=True)
 
-    # Campos obrigatórios
+    # Campos obrigatórios - Informações Básicas
     codigo_sessao = models.CharField(db_column='CodigoSessao', max_length=50, unique=True)
+    data_planejamento = models.DateField(db_column='DataPlanejamento', help_text='Data do planejamento')
     coordenador_distrital = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         db_column='CoordenadorDistritalID',
@@ -87,7 +88,7 @@ class SessaoPEP(core_models.VersionedModel):
         related_name='sessoes_tecnico'
     )
     distrito = models.ForeignKey(Location, db_column='DistritoID', on_delete=models.PROTECT)
-    modulo = models.ForeignKey(ModuloEducacional, db_column='ModuloID', on_delete=models.PROTECT)
+    nome_modulo = models.CharField(db_column='NomeModulo', max_length=255, help_text='Nome do módulo educacional')
     mes_modulo_anterior = models.CharField(db_column='MesModuloAnterior', max_length=50, null=True, blank=True)
 
     # Detalhes da sessão
