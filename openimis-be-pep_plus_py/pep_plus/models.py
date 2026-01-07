@@ -264,6 +264,14 @@ class SupervisaoSessao(core_models.VersionedModel):
     """
     Session Supervision - Supervision of session execution (Ferramenta 4)
     """
+
+    NUMERO_PARTICIPANTES_CHOICES = [
+        ('0', '0 participantes'),
+        ('1-5', '1 a 5 participantes'),
+        ('6-10', '6 a 10 participantes'),
+        ('15+', 'Mais de 15 participantes'),
+    ]
+
     id = models.AutoField(db_column='SupervisaoSessaoID', primary_key=True)
     uuid = models.CharField(db_column='SupervisaoSessaoUUID', max_length=36, default=uuid.uuid4, unique=True)
 
@@ -273,13 +281,62 @@ class SupervisaoSessao(core_models.VersionedModel):
                                   on_delete=models.PROTECT, related_name='supervisoes_realizadas')
     formador = models.ForeignKey(settings.AUTH_USER_MODEL, db_column='FormadorID',
                                 on_delete=models.PROTECT, related_name='supervisoes_recebidas')
+    localidade = models.ForeignKey(Location, db_column='LocalidadeID', on_delete=models.PROTECT,
+                                   null=True, blank=True, related_name='supervisoes_localidade')
+    grupo = models.ForeignKey(GrupoFamiliar, db_column='GrupoID', on_delete=models.PROTECT,
+                             null=True, blank=True, related_name='supervisoes_grupo')
 
     data_supervisao = models.DateField(db_column='DataSupervisao')
     data_modulo_anterior = models.DateField(db_column='DataModuloAnterior', null=True, blank=True)
     identificador_grupo = models.CharField(db_column='IdentificadorGrupo', max_length=50)
 
-    # Avaliação da supervisão (perguntas Sim/Não armazenadas como JSON)
-    perguntas_avaliacao = models.JSONField(db_column='PerguntasAvaliacao', default=dict)
+    # Número de participantes
+    numero_participantes = models.CharField(
+        db_column='NumeroParticipantes',
+        max_length=10,
+        choices=NUMERO_PARTICIPANTES_CHOICES,
+        default='0',
+        help_text='Número de participantes presentes'
+    )
+
+    # Práticas positivas e estratégias: [{ descricao: "...", confirmacao: "Sim/Não/N/A" }]
+    praticas_positivas_estrategias = models.JSONField(
+        db_column='PraticasPositivasEstrategias',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, confirmacao: Sim/Não/N/A }]'
+    )
+
+    # Desafios na transmissão: [{ descricao: "...", confirmacao: "Sim/Não/N/A" }]
+    desafios_transmissao = models.JSONField(
+        db_column='DesafiosTransmissao',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, confirmacao: Sim/Não/N/A }]'
+    )
+
+    necessita_encaminhamento = models.BooleanField(
+        db_column='NecessitaEncaminhamento',
+        default=False,
+        help_text='Indica se há necessidade de encaminhamento'
+    )
+
+    # Auto-avaliação do formador: [{ descricao: "...", confirmacao: boolean }]
+    auto_avaliacao_pontos_fortes = models.JSONField(
+        db_column='AutoAvaliacaoPontosFortes',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, confirmacao: boolean }]'
+    )
+    auto_avaliacao_pontos_atencao = models.JSONField(
+        db_column='AutoAvaliacaoPontosAtencao',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, confirmacao: boolean }]'
+    )
+
+    # Campos legados (manter por compatibilidade)
+    perguntas_avaliacao = models.JSONField(db_column='PerguntasAvaliacao', default=dict, blank=True)
     pontos_positivos = models.TextField(db_column='PontosPositivos', null=True, blank=True)
     pontos_melhorar = models.TextField(db_column='PontosMelhorar', null=True, blank=True)
     observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)

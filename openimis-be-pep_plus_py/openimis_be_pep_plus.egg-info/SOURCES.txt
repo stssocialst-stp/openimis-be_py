@@ -23,4 +23,5 @@ pep_plus/migrations/0003_relatoriosupervisaobimestral.py
 pep_plus/migrations/0004_alter_sessaopep_fields.py
 pep_plus/migrations/0005_alter_presencasessao_fields.py
 pep_plus/migrations/0006_alter_execucaosessao_fields.py
+pep_plus/migrations/0007_alter_supervisaosessao_fields.py
 pep_plus/migrations/__init__.py

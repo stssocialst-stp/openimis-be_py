@@ -587,13 +587,33 @@ class UpdateExecucaoSessaoMutation(OpenIMISMutation):
 # ========== SESSION SUPERVISION MUTATIONS (Ferramenta 4) ==========
 
 class CreateSupervisaoSessaoInput(OpenIMISMutation.Input):
-    """Input for creating a supervision record"""
+    """Input for creating a supervision record (Ferramenta 4)"""
+    # Detalhes da sessão
     sessao_id = graphene.String(required=True)
     supervisor_id = graphene.String(required=True)
     formador_id = graphene.String(required=True)
+    localidade_id = graphene.String(required=False)
+    grupo_id = graphene.String(required=False)
     data_supervisao = graphene.Date(required=True)
     data_modulo_anterior = graphene.Date(required=False)
     identificador_grupo = graphene.String(required=True)
+
+    # Detalhes da observação
+    numero_participantes = graphene.String(required=False)  # Opções: "0", "1-5", "6-10", "15+"
+
+    # Práticas positivas e estratégias: [{ descricao: "...", confirmacao: "Sim/Não/N/A" }]
+    praticas_positivas_estrategias = graphene.JSONString(required=False)
+
+    # Desafios: [{ descricao: "...", confirmacao: "Sim/Não/N/A" }]
+    desafios_transmissao = graphene.JSONString(required=False)
+
+    necessita_encaminhamento = graphene.Boolean(required=False)
+
+    # Auto-avaliação: [{ descricao: "...", confirmacao: boolean }]
+    auto_avaliacao_pontos_fortes = graphene.JSONString(required=False)
+    auto_avaliacao_pontos_atencao = graphene.JSONString(required=False)
+
+    # Campos legados (compatibilidade)
     perguntas_avaliacao = graphene.JSONString(required=False)
     pontos_positivos = graphene.String(required=False)
     pontos_melhorar = graphene.String(required=False)
@@ -625,6 +645,23 @@ class CreateSupervisaoSessaoMutation(OpenIMISMutation):
 class UpdateSupervisaoSessaoInput(OpenIMISMutation.Input):
     """Input for updating a supervision record"""
     id = graphene.Int(required=True)
+
+    # Detalhes da observação
+    numero_participantes = graphene.String(required=False)  # Opções: "0", "1-5", "6-10", "15+"
+
+    # Práticas positivas e estratégias
+    praticas_positivas_estrategias = graphene.JSONString(required=False)
+
+    # Desafios
+    desafios_transmissao = graphene.JSONString(required=False)
+
+    necessita_encaminhamento = graphene.Boolean(required=False)
+
+    # Auto-avaliação
+    auto_avaliacao_pontos_fortes = graphene.JSONString(required=False)
+    auto_avaliacao_pontos_atencao = graphene.JSONString(required=False)
+
+    # Campos legados (compatibilidade)
     perguntas_avaliacao = graphene.JSONString(required=False)
     pontos_positivos = graphene.String(required=False)
     pontos_melhorar = graphene.String(required=False)

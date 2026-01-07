@@ -61,8 +61,8 @@ class ExecucaoSessaoAdmin(admin.ModelAdmin):
 
 @admin.register(SupervisaoSessao)
 class SupervisaoSessaoAdmin(admin.ModelAdmin):
-    list_display = ('sessao', 'supervisor', 'formador', 'data_supervisao', 'identificador_grupo')
-    list_filter = ('data_supervisao',)
+    list_display = ('sessao', 'supervisor', 'formador', 'localidade', 'numero_participantes', 'necessita_encaminhamento', 'data_supervisao')
+    list_filter = ('necessita_encaminhamento', 'numero_participantes', 'data_supervisao')
     search_fields = ('supervisor__username', 'formador__username', 'identificador_grupo')
     date_hierarchy = 'data_supervisao'
     ordering = ('-data_supervisao',)

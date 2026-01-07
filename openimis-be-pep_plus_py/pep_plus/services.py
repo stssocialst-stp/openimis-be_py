@@ -574,9 +574,17 @@ class SupervisaoSessaoService(BaseService):
                 sessao_id=data['sessao_id'],
                 supervisor_id=data['supervisor_id'],
                 formador_id=data['formador_id'],
+                localidade_id=data.get('localidade_id'),
+                grupo_id=data.get('grupo_id'),
                 data_supervisao=data['data_supervisao'],
                 data_modulo_anterior=data.get('data_modulo_anterior'),
                 identificador_grupo=data['identificador_grupo'],
+                numero_participantes=data.get('numero_participantes', '0'),
+                praticas_positivas_estrategias=data.get('praticas_positivas_estrategias', []),
+                desafios_transmissao=data.get('desafios_transmissao', []),
+                necessita_encaminhamento=data.get('necessita_encaminhamento', False),
+                auto_avaliacao_pontos_fortes=data.get('auto_avaliacao_pontos_fortes', []),
+                auto_avaliacao_pontos_atencao=data.get('auto_avaliacao_pontos_atencao', []),
                 perguntas_avaliacao=data.get('perguntas_avaliacao', {}),
                 pontos_positivos=data.get('pontos_positivos'),
                 pontos_melhorar=data.get('pontos_melhorar'),
@@ -599,6 +607,16 @@ class SupervisaoSessaoService(BaseService):
             raise PermissionDenied("User does not have permission to update supervision records")
 
         with transaction.atomic():
+            supervisao.numero_participantes = data.get('numero_participantes', supervisao.numero_participantes)
+            supervisao.praticas_positivas_estrategias = data.get('praticas_positivas_estrategias',
+                                                                 supervisao.praticas_positivas_estrategias)
+            supervisao.desafios_transmissao = data.get('desafios_transmissao', supervisao.desafios_transmissao)
+            supervisao.necessita_encaminhamento = data.get('necessita_encaminhamento',
+                                                           supervisao.necessita_encaminhamento)
+            supervisao.auto_avaliacao_pontos_fortes = data.get('auto_avaliacao_pontos_fortes',
+                                                               supervisao.auto_avaliacao_pontos_fortes)
+            supervisao.auto_avaliacao_pontos_atencao = data.get('auto_avaliacao_pontos_atencao',
+                                                                supervisao.auto_avaliacao_pontos_atencao)
             supervisao.perguntas_avaliacao = data.get('perguntas_avaliacao', supervisao.perguntas_avaliacao)
             supervisao.pontos_positivos = data.get('pontos_positivos', supervisao.pontos_positivos)
             supervisao.pontos_melhorar = data.get('pontos_melhorar', supervisao.pontos_melhorar)

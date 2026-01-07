@@ -127,6 +127,8 @@ class SupervisaoSessaoGQLType(DjangoObjectType):
     sessao = graphene.Field(SessaoPEPGQLType)
     supervisor = graphene.Field(UserGQLType)
     formador = graphene.Field(UserGQLType)
+    localidade = graphene.Field(LocationGQLType)
+    grupo = graphene.Field(GrupoFamiliarGQLType)
 
     class Meta:
         model = SupervisaoSessao
@@ -135,6 +137,10 @@ class SupervisaoSessaoGQLType(DjangoObjectType):
             "sessao_id": ["exact"],
             "supervisor_id": ["exact"],
             "formador_id": ["exact"],
+            "localidade_id": ["exact"],
+            "grupo_id": ["exact"],
+            "numero_participantes": ["exact"],
+            "necessita_encaminhamento": ["exact"],
             "data_supervisao": ["exact", "lt", "lte", "gt", "gte"],
             "identificador_grupo": ["exact", "icontains"],
         }
@@ -338,7 +344,9 @@ class Query(graphene.ObjectType):
         return SupervisaoSessao.objects.filter(validity_to__isnull=True).select_related(
             'sessao',
             'supervisor',
-            'formador'
+            'formador',
+            'localidade',
+            'grupo'
         )
 
     def resolve_relatorios_distritais(self, info, **kwargs):

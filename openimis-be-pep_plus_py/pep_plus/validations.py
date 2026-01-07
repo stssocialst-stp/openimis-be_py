@@ -232,6 +232,15 @@ def validate_supervisao_sessao(data):
             'message': 'Identificador do grupo é obrigatório'
         })
 
+    # Validar numero_participantes se fornecido
+    if data.get('numero_participantes'):
+        opcoes_validas = ['0', '1-5', '6-10', '15+']
+        if data.get('numero_participantes') not in opcoes_validas:
+            errors.append({
+                'field': 'numero_participantes',
+                'message': f'Número de participantes deve ser um de: {", ".join(opcoes_validas)}'
+            })
+
     return errors
 
 
