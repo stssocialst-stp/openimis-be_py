@@ -57,7 +57,6 @@ class SessaoPEPGQLType(DjangoObjectType):
     coordenador_distrital = graphene.Field(UserGQLType)
     tecnico_social = graphene.Field(UserGQLType)
     distrito = graphene.Field(LocationGQLType)
-    modulo = graphene.Field(ModuloEducacionalGQLType)
     grupo_familia = graphene.Field(GrupoFamiliarGQLType)
 
     class Meta:
@@ -66,10 +65,11 @@ class SessaoPEPGQLType(DjangoObjectType):
         filter_fields = {
             "codigo_sessao": ["exact", "icontains"],
             "distrito_id": ["exact"],
-            "modulo_id": ["exact"],
+            "nome_modulo": ["exact", "icontains"],
             "coordenador_distrital_id": ["exact"],
             "tecnico_social_id": ["exact"],
             "grupo_familia_id": ["exact"],
+            "data_planejamento": ["exact", "lt", "lte", "gt", "gte"],
             "data_sessao": ["exact", "lt", "lte", "gt", "gte"],
             "status": ["exact"],
             "tem_supervisao": ["exact"],

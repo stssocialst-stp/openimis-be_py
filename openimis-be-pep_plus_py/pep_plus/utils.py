@@ -95,7 +95,6 @@ def convert_ids_in_session_data(session_data):
         'coordenador_distrital_id',
         'tecnico_social_id',
         'distrito_id',
-        'modulo_id',
         'modulo_maior_dificuldade_id',
         'grupo_familia_id',
         'localidade_id',
@@ -143,7 +142,6 @@ def convert_uuid_to_id(field_name, uuid_value):
 
     model_mapping = {
         'grupo_familia_id': (GrupoFamiliar, 'uuid'),
-        'modulo_id': (ModuloEducacional, 'uuid'),
         'modulo_maior_dificuldade_id': (ModuloEducacional, 'uuid'),
         'coordenador_distrital_id': (User, 'id'),
         'tecnico_social_id': (User, 'id'),
