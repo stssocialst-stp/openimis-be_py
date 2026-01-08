@@ -309,10 +309,11 @@ class DeleteSessaoPEPMutation(OpenIMISMutation):
 class SessaoPEPInputType(graphene.InputObjectType):
     """Input type for a single session in bulk creation"""
     codigo_sessao = graphene.String(required=True)
+    data_planejamento = graphene.Date(required=True)
     coordenador_distrital_id = graphene.String(required=True)
     tecnico_social_id = graphene.String(required=True)
     distrito_id = graphene.String(required=True)
-    modulo_id = graphene.String(required=True)
+    nome_modulo = graphene.String(required=True)
     mes_modulo_anterior = graphene.String(required=False)
     dia_semana = graphene.String(required=True)
     data_sessao = graphene.Date(required=True)
