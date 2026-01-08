@@ -126,15 +126,21 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # Add data_modulo_anterior DateField
-        migrations.AddField(
-            model_name='supervisaosessao',
-            name='data_modulo_anterior',
-            field=models.DateField(
-                db_column='DataModuloAnterior',
-                null=True,
-                blank=True,
-                help_text='Data do módulo anterior'
-            ),
+        # Add data_modulo_anterior DateField (only if it doesn't exist)
+        migrations.RunSQL(
+            sql="""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblSupervisaoSessao'
+                        AND column_name='DataModuloAnterior'
+                    ) THEN
+                        ALTER TABLE "tblSupervisaoSessao"
+                        ADD COLUMN "DataModuloAnterior" date NULL;
+                    END IF;
+                END $$;
+            """,
+            reverse_sql='ALTER TABLE "tblSupervisaoSessao" DROP COLUMN IF EXISTS "DataModuloAnterior";'
         ),
     ]
