@@ -275,10 +275,11 @@ class SessaoPEPService(BaseService):
 
                 sessao = SessaoPEP.objects.create(
                     codigo_sessao=session_data['codigo_sessao'],
+                    data_planejamento=session_data['data_planejamento'],
                     coordenador_distrital_id=session_data['coordenador_distrital_id'],
                     tecnico_social_id=session_data['tecnico_social_id'],
                     distrito_id=session_data['distrito_id'],
-                    modulo_id=session_data['modulo_id'],
+                    nome_modulo=session_data['nome_modulo'],
                     mes_modulo_anterior=session_data.get('mes_modulo_anterior'),
                     dia_semana=session_data['dia_semana'],
                     data_sessao=session_data['data_sessao'],
