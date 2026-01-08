@@ -335,6 +335,15 @@ class SupervisaoSessao(core_models.VersionedModel):
         help_text='Array de objetos: [{ descricao, confirmacao: boolean }]'
     )
 
+    # Avaliação da execução dos passos da metodologia
+    # [{ descricao: "...", confirmacao: "Não fez/Não adequado/Adequado/Excelente/N/A" }]
+    avaliacao_execucao_metodologia = models.JSONField(
+        db_column='AvaliacaoExecucaoMetodologia',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, confirmacao: Não fez/Não adequado/Adequado/Excelente/N/A }]'
+    )
+
     # Campos legados (manter por compatibilidade)
     perguntas_avaliacao = models.JSONField(db_column='PerguntasAvaliacao', default=dict, blank=True)
     pontos_positivos = models.TextField(db_column='PontosPositivos', null=True, blank=True)

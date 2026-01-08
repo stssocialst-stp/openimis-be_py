@@ -613,6 +613,9 @@ class CreateSupervisaoSessaoInput(OpenIMISMutation.Input):
     auto_avaliacao_pontos_fortes = graphene.JSONString(required=False)
     auto_avaliacao_pontos_atencao = graphene.JSONString(required=False)
 
+    # Avaliação da execução dos passos da metodologia: [{ descricao: "...", confirmacao: "Não fez/Não adequado/Adequado/Excelente/N/A" }]
+    avaliacao_execucao_metodologia = graphene.JSONString(required=False)
+
     # Campos legados (compatibilidade)
     perguntas_avaliacao = graphene.JSONString(required=False)
     pontos_positivos = graphene.String(required=False)
@@ -660,6 +663,9 @@ class UpdateSupervisaoSessaoInput(OpenIMISMutation.Input):
     # Auto-avaliação
     auto_avaliacao_pontos_fortes = graphene.JSONString(required=False)
     auto_avaliacao_pontos_atencao = graphene.JSONString(required=False)
+
+    # Avaliação da execução dos passos da metodologia
+    avaliacao_execucao_metodologia = graphene.JSONString(required=False)
 
     # Campos legados (compatibilidade)
     perguntas_avaliacao = graphene.JSONString(required=False)

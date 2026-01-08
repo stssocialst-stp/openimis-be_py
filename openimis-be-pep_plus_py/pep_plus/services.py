@@ -585,6 +585,7 @@ class SupervisaoSessaoService(BaseService):
                 necessita_encaminhamento=data.get('necessita_encaminhamento', False),
                 auto_avaliacao_pontos_fortes=data.get('auto_avaliacao_pontos_fortes', []),
                 auto_avaliacao_pontos_atencao=data.get('auto_avaliacao_pontos_atencao', []),
+                avaliacao_execucao_metodologia=data.get('avaliacao_execucao_metodologia', []),
                 perguntas_avaliacao=data.get('perguntas_avaliacao', {}),
                 pontos_positivos=data.get('pontos_positivos'),
                 pontos_melhorar=data.get('pontos_melhorar'),
@@ -617,6 +618,8 @@ class SupervisaoSessaoService(BaseService):
                                                                supervisao.auto_avaliacao_pontos_fortes)
             supervisao.auto_avaliacao_pontos_atencao = data.get('auto_avaliacao_pontos_atencao',
                                                                 supervisao.auto_avaliacao_pontos_atencao)
+            supervisao.avaliacao_execucao_metodologia = data.get('avaliacao_execucao_metodologia',
+                                                                  supervisao.avaliacao_execucao_metodologia)
             supervisao.perguntas_avaliacao = data.get('perguntas_avaliacao', supervisao.perguntas_avaliacao)
             supervisao.pontos_positivos = data.get('pontos_positivos', supervisao.pontos_positivos)
             supervisao.pontos_melhorar = data.get('pontos_melhorar', supervisao.pontos_melhorar)
