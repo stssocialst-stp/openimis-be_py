@@ -308,7 +308,6 @@ class Query(graphene.ObjectType):
             'coordenador_distrital',
             'tecnico_social',
             'distrito',
-            'modulo',
             'grupo_familia',
             'grupo_familia__distrito',
             'grupo_familia__localidade'
@@ -326,7 +325,6 @@ class Query(graphene.ObjectType):
             'sessao__coordenador_distrital',
             'sessao__tecnico_social',
             'sessao__distrito',
-            'sessao__modulo',
             'sessao__grupo_familia'
         )
 
