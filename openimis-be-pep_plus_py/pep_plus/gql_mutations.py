@@ -695,6 +695,149 @@ class UpdateSupervisaoSessaoMutation(OpenIMISMutation):
             }]
 
 
+# ========== RELATORIO DISTRITAL BIMESTRAL MUTATIONS (Ferramenta 5) ==========
+
+class CreateRelatorioDistritalInput(OpenIMISMutation.Input):
+    """Input for creating a district bimonthly report (Ferramenta 5)"""
+    # Identificação
+    distrito_id = graphene.String(required=True)
+    coordenador_distrital_id = graphene.String(required=True)
+    tecnico_administrativo_id = graphene.String(required=False)
+
+    # Período
+    periodo = graphene.String(required=True)  # BIM1, BIM2, BIM3, BIM4, BIM5, BIM6
+    ano = graphene.Int(required=True)
+    periodo_inicio = graphene.Date(required=True)
+    periodo_fim = graphene.Date(required=True)
+
+    # Estatísticas gerais
+    numero_localidades_atendidas = graphene.Int(required=True)
+    numero_familias_atendidas = graphene.Int(required=True)
+    numero_tecnicos_formadores = graphene.Int(required=True)
+    numero_sessoes_conduzidas = graphene.Int(required=True)
+    numero_sessoes_esperadas = graphene.Int(required=True)
+    numero_familias_presentes = graphene.Int(required=True)
+    numero_familias_esperadas = graphene.Int(required=True)
+    numero_familias_migraram = graphene.Int(required=True)
+    numero_sessoes_perdidas = graphene.Int(required=True)
+
+    # Percentuais calculados (opcionais)
+    percentual_sessoes = graphene.Float(required=False)
+    percentual_familias = graphene.Float(required=False)
+    media_familia_presente = graphene.Float(required=False)
+    media_familia_esperada = graphene.Float(required=False)
+
+    # Tabela de dados por técnico
+    # [{ tecnicoFormador, sessoesExecutadas, sessoesPerdidas, modulos,
+    #    familiasPresentes, familiasMigraram, naoCompareceram2Sessoes, naoCompareceram1Sessao }]
+    dados_tecnicos = graphene.JSONString(required=False)
+
+    # Dados de encaminhamentos (opcional)
+    dados_encaminhamentos = graphene.JSONString(required=False)
+
+    # Observações
+    observacoes = graphene.String(required=False)
+
+
+class CreateRelatorioDistritalMutation(OpenIMISMutation):
+    """Create a new district bimonthly report"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "CreateRelatorioDistritalMutation"
+
+    class Input(CreateRelatorioDistritalInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            # Convert Relay IDs
+            data = convert_ids_in_session_data(data)
+            relatorio = RelatorioDistritalService.create(data, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
+class UpdateRelatorioDistritalInput(OpenIMISMutation.Input):
+    """Input for updating a district bimonthly report"""
+    id = graphene.Int(required=True)
+
+    # Estatísticas gerais
+    numero_localidades_atendidas = graphene.Int(required=False)
+    numero_familias_atendidas = graphene.Int(required=False)
+    numero_tecnicos_formadores = graphene.Int(required=False)
+    numero_sessoes_conduzidas = graphene.Int(required=False)
+    numero_sessoes_esperadas = graphene.Int(required=False)
+    numero_familias_presentes = graphene.Int(required=False)
+    numero_familias_esperadas = graphene.Int(required=False)
+    numero_familias_migraram = graphene.Int(required=False)
+    numero_sessoes_perdidas = graphene.Int(required=False)
+
+    # Percentuais calculados
+    percentual_sessoes = graphene.Float(required=False)
+    percentual_familias = graphene.Float(required=False)
+    media_familia_presente = graphene.Float(required=False)
+    media_familia_esperada = graphene.Float(required=False)
+
+    # Tabela de dados por técnico
+    dados_tecnicos = graphene.JSONString(required=False)
+
+    # Dados de encaminhamentos
+    dados_encaminhamentos = graphene.JSONString(required=False)
+
+    # Observações
+    observacoes = graphene.String(required=False)
+
+
+class UpdateRelatorioDistritalMutation(OpenIMISMutation):
+    """Update a district bimonthly report"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "UpdateRelatorioDistritalMutation"
+
+    class Input(UpdateRelatorioDistritalInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            relatorio_id = data.pop('id')
+            relatorio = RelatorioDistritalService.update(relatorio_id, data, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
+class DeleteRelatorioDistritalInput(OpenIMISMutation.Input):
+    """Input for deleting a district bimonthly report"""
+    id = graphene.Int(required=True)
+
+
+class DeleteRelatorioDistritalMutation(OpenIMISMutation):
+    """Delete a district bimonthly report (soft delete)"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "DeleteRelatorioDistritalMutation"
+
+    class Input(DeleteRelatorioDistritalInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            RelatorioDistritalService.delete(data['id'], user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
 # ========== ENCAMINHAMENTO MUTATIONS ==========
 
 class CreateEncaminhamentoInput(OpenIMISMutation.Input):
@@ -997,6 +1140,11 @@ class Mutation(graphene.ObjectType):
     # Session Supervision mutations (Ferramenta 4)
     create_supervisao_sessao = CreateSupervisaoSessaoMutation.Field()
     update_supervisao_sessao = UpdateSupervisaoSessaoMutation.Field()
+
+    # District Bimonthly Report mutations (Ferramenta 5)
+    create_relatorio_distrital = CreateRelatorioDistritalMutation.Field()
+    update_relatorio_distrital = UpdateRelatorioDistritalMutation.Field()
+    delete_relatorio_distrital = DeleteRelatorioDistritalMutation.Field()
 
     # Referral mutations
     create_encaminhamento = CreateEncaminhamentoMutation.Field()

@@ -683,6 +683,77 @@ class RelatorioDistritalService(BaseService):
             relatorio.save()
             return relatorio
 
+    @classmethod
+    def update(cls, relatorio_id, data, user):
+        """Update a district report"""
+        try:
+            relatorio = RelatorioDistritalBimestral.objects.get(id=relatorio_id, validity_to__isnull=True)
+        except RelatorioDistritalBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'District report not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.change_relatoriodistritalbimestral']):
+            raise PermissionDenied("User does not have permission to update district reports")
+
+        with transaction.atomic():
+            # Update statistics
+            if 'numero_localidades_atendidas' in data:
+                relatorio.numero_localidades_atendidas = data['numero_localidades_atendidas']
+            if 'numero_familias_atendidas' in data:
+                relatorio.numero_familias_atendidas = data['numero_familias_atendidas']
+            if 'numero_tecnicos_formadores' in data:
+                relatorio.numero_tecnicos_formadores = data['numero_tecnicos_formadores']
+            if 'numero_sessoes_conduzidas' in data:
+                relatorio.numero_sessoes_conduzidas = data['numero_sessoes_conduzidas']
+            if 'numero_sessoes_esperadas' in data:
+                relatorio.numero_sessoes_esperadas = data['numero_sessoes_esperadas']
+            if 'numero_familias_presentes' in data:
+                relatorio.numero_familias_presentes = data['numero_familias_presentes']
+            if 'numero_familias_esperadas' in data:
+                relatorio.numero_familias_esperadas = data['numero_familias_esperadas']
+            if 'numero_familias_migraram' in data:
+                relatorio.numero_familias_migraram = data['numero_familias_migraram']
+            if 'numero_sessoes_perdidas' in data:
+                relatorio.numero_sessoes_perdidas = data['numero_sessoes_perdidas']
+
+            # Update calculated percentages
+            if 'percentual_sessoes' in data:
+                relatorio.percentual_sessoes = data['percentual_sessoes']
+            if 'percentual_familias' in data:
+                relatorio.percentual_familias = data['percentual_familias']
+            if 'media_familia_presente' in data:
+                relatorio.media_familia_presente = data['media_familia_presente']
+            if 'media_familia_esperada' in data:
+                relatorio.media_familia_esperada = data['media_familia_esperada']
+
+            # Update detailed data
+            if 'dados_tecnicos' in data:
+                relatorio.dados_tecnicos = data['dados_tecnicos']
+            if 'dados_encaminhamentos' in data:
+                relatorio.dados_encaminhamentos = data['dados_encaminhamentos']
+            if 'observacoes' in data:
+                relatorio.observacoes = data['observacoes']
+
+            relatorio.audit_user_id = user.id_for_audit
+            relatorio.save()
+            return relatorio
+
+    @classmethod
+    def delete(cls, relatorio_id, user):
+        """Delete (soft delete) a district report"""
+        try:
+            relatorio = RelatorioDistritalBimestral.objects.get(id=relatorio_id, validity_to__isnull=True)
+        except RelatorioDistritalBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'District report not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.delete_relatoriodistritalbimestral']):
+            raise PermissionDenied("User does not have permission to delete district reports")
+
+        with transaction.atomic():
+            relatorio.delete_history()
+            return relatorio
+
 
 class EncaminhamentoService(BaseService):
     """Service for Referral operations"""

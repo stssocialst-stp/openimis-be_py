@@ -388,30 +388,48 @@ class RelatorioDistritalBimestral(core_models.VersionedModel):
     periodo_fim = models.DateField(db_column='PeriodoFim')
 
     # Estatísticas gerais
-    numero_localidades_atendidas = models.IntegerField(db_column='NumeroLocalidadesAtendidas', default=0)
-    numero_familias_atendidas = models.IntegerField(db_column='NumeroFamiliasAtendidas', default=0)
-    numero_tecnicos_formadores = models.IntegerField(db_column='NumeroTecnicosFormadores', default=0)
-    numero_sessoes_conduzidas = models.IntegerField(db_column='NumeroSessoesConduzidas', default=0)
-    numero_sessoes_esperadas = models.IntegerField(db_column='NumeroSessoesEsperadas', default=0)
-    numero_familias_presentes = models.IntegerField(db_column='NumeroFamiliasPresentes', default=0)
-    numero_familias_esperadas = models.IntegerField(db_column='NumeroFamiliasEsperadas', default=0)
+    numero_localidades_atendidas = models.IntegerField(db_column='NumeroLocalidadesAtendidas', default=0,
+                                                       help_text='Número de localidades atendidas no período')
+    numero_familias_atendidas = models.IntegerField(db_column='NumeroFamiliasAtendidas', default=0,
+                                                    help_text='Número total de famílias atendidas')
+    numero_tecnicos_formadores = models.IntegerField(db_column='NumeroTecnicosFormadores', default=0,
+                                                     help_text='Número de técnicos formadores')
+    numero_sessoes_conduzidas = models.IntegerField(db_column='NumeroSessoesConduzidas', default=0,
+                                                    help_text='Número de sessões efetivamente conduzidas')
+    numero_sessoes_esperadas = models.IntegerField(db_column='NumeroSessoesEsperadas', default=0,
+                                                   help_text='Número de sessões esperadas/planejadas')
+    numero_familias_presentes = models.IntegerField(db_column='NumeroFamiliasPresentes', default=0,
+                                                    help_text='Número total de famílias presentes nas sessões')
+    numero_familias_esperadas = models.IntegerField(db_column='NumeroFamiliasEsperadas', default=0,
+                                                    help_text='Número total de famílias esperadas nas sessões')
+    numero_familias_migraram = models.IntegerField(db_column='NumeroFamiliasMigraram', default=0,
+                                                   help_text='Número total de famílias que migraram')
+    numero_sessoes_perdidas = models.IntegerField(db_column='NumeroSessoesPerdidas', default=0,
+                                                  help_text='Número total de sessões perdidas')
 
-    # Percentuais calculados
+    # Percentuais calculados (opcionais)
     percentual_sessoes = models.DecimalField(db_column='PercentualSessoes', max_digits=5,
-                                            decimal_places=2, default=0)
+                                            decimal_places=2, default=0, blank=True,
+                                            help_text='Percentual de sessões realizadas')
     percentual_familias = models.DecimalField(db_column='PercentualFamilias', max_digits=5,
-                                             decimal_places=2, default=0)
-
-    # Estatísticas adicionais
-    numero_familias_migraram = models.IntegerField(db_column='NumeroFamiliasMigraram', default=0)
-    numero_sessoes_perdidas = models.IntegerField(db_column='NumeroSessoesPerdidas', default=0)
+                                             decimal_places=2, default=0, blank=True,
+                                             help_text='Percentual de famílias presentes')
     media_familia_presente = models.DecimalField(db_column='MediaFamiliaPresente', max_digits=5,
-                                                decimal_places=2, default=0)
+                                                decimal_places=2, default=0, blank=True,
+                                                help_text='Média de famílias presentes por sessão')
     media_familia_esperada = models.DecimalField(db_column='MediaFamiliaEsperada', max_digits=5,
-                                                decimal_places=2, default=0)
+                                                decimal_places=2, default=0, blank=True,
+                                                help_text='Média de famílias esperadas por sessão')
 
     # Dados detalhados por técnico (JSON)
-    dados_tecnicos = models.JSONField(db_column='DadosTecnicos', default=list, blank=True)
+    # Array: [{ tecnicoFormador, sessoesExecutadas, sessoesPerdidas, modulos,
+    #          familiasPresentes, familiasMigraram, naoCompareceram2Sessoes, naoCompareceram1Sessao }]
+    dados_tecnicos = models.JSONField(
+        db_column='DadosTecnicos',
+        default=list,
+        blank=True,
+        help_text='Array de objetos com dados por técnico formador'
+    )
 
     # Dados de encaminhamentos
     dados_encaminhamentos = models.JSONField(db_column='DadosEncaminhamentos', default=list, blank=True)
