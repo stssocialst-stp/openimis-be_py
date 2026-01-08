@@ -62,9 +62,9 @@ def validate_sessao_planeamento(data):
         })
 
     # Módulo obrigatório
-    if not data.get('modulo_id'):
+    if not data.get('nome_modulo'):
         errors.append({
-            'field': 'modulo_id',
+            'field': 'nome_modulo',
             'message': 'Nome do módulo é obrigatório'
         })
 
