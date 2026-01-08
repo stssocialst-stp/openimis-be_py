@@ -2,6 +2,7 @@
 PEP+ Services
 Business logic for CRUD operations
 """
+import json
 from django.db import transaction
 from django.core.exceptions import ValidationError, PermissionDenied
 from core.services import BaseService
@@ -16,6 +17,36 @@ from .validations import (
     validate_relatorio_distrital, validate_encaminhamento,
     validate_modulo_educacional, validate_grupo_familiar
 )
+
+
+def parse_json_field(value, default=None):
+    """
+    Parse JSON field that might come as string or already parsed object.
+
+    Args:
+        value: The value to parse (string, list, dict, or None)
+        default: Default value if parsing fails or value is None
+
+    Returns:
+        Parsed value or default
+    """
+    if value is None:
+        return default if default is not None else []
+
+    # If already parsed (list or dict), return as is
+    if isinstance(value, (list, dict)):
+        return value
+
+    # If string, try to parse JSON
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, ValueError):
+            # If parse fails, return default
+            return default if default is not None else []
+
+    # Unknown type, return default
+    return default if default is not None else []
 
 
 class ModuloEducacionalService(BaseService):
@@ -501,14 +532,14 @@ class ExecucaoSessaoService(BaseService):
                 supervisor_id=data.get('supervisor_id'),
                 localidade_id=data.get('localidade_id'),
                 numero_cuidadores=data.get('numero_cuidadores', '0'),
-                praticas_positivas=data.get('praticas_positivas', []),
+                praticas_positivas=parse_json_field(data.get('praticas_positivas'), []),
                 outras_praticas_positivas=data.get('outras_praticas_positivas'),
-                desafios_transmissao=data.get('desafios_transmissao', []),
+                desafios_transmissao=parse_json_field(data.get('desafios_transmissao'), []),
                 outros_desafios=data.get('outros_desafios'),
                 necessita_encaminhamento=data.get('necessita_encaminhamento', False),
-                auto_avaliacao_pontos_fortes=data.get('auto_avaliacao_pontos_fortes', []),
-                auto_avaliacao_pontos_atencao=data.get('auto_avaliacao_pontos_atencao', []),
-                avaliacao_metodologia=data.get('avaliacao_metodologia', {}),
+                auto_avaliacao_pontos_fortes=parse_json_field(data.get('auto_avaliacao_pontos_fortes'), []),
+                auto_avaliacao_pontos_atencao=parse_json_field(data.get('auto_avaliacao_pontos_atencao'), []),
+                avaliacao_metodologia=parse_json_field(data.get('avaliacao_metodologia'), {}),
                 observacoes=data.get('observacoes')
             )
             execucao.audit_user_id = user.id_for_audit
@@ -535,18 +566,23 @@ class ExecucaoSessaoService(BaseService):
 
         with transaction.atomic():
             execucao.numero_cuidadores = data.get('numero_cuidadores', execucao.numero_cuidadores)
-            execucao.praticas_positivas = data.get('praticas_positivas', execucao.praticas_positivas)
+            if 'praticas_positivas' in data:
+                execucao.praticas_positivas = parse_json_field(data['praticas_positivas'], execucao.praticas_positivas)
             execucao.outras_praticas_positivas = data.get('outras_praticas_positivas',
                                                           execucao.outras_praticas_positivas)
-            execucao.desafios_transmissao = data.get('desafios_transmissao', execucao.desafios_transmissao)
+            if 'desafios_transmissao' in data:
+                execucao.desafios_transmissao = parse_json_field(data['desafios_transmissao'], execucao.desafios_transmissao)
             execucao.outros_desafios = data.get('outros_desafios', execucao.outros_desafios)
             execucao.necessita_encaminhamento = data.get('necessita_encaminhamento',
                                                          execucao.necessita_encaminhamento)
-            execucao.auto_avaliacao_pontos_fortes = data.get('auto_avaliacao_pontos_fortes',
-                                                            execucao.auto_avaliacao_pontos_fortes)
-            execucao.auto_avaliacao_pontos_atencao = data.get('auto_avaliacao_pontos_atencao',
-                                                             execucao.auto_avaliacao_pontos_atencao)
-            execucao.avaliacao_metodologia = data.get('avaliacao_metodologia', execucao.avaliacao_metodologia)
+            if 'auto_avaliacao_pontos_fortes' in data:
+                execucao.auto_avaliacao_pontos_fortes = parse_json_field(data['auto_avaliacao_pontos_fortes'],
+                                                                         execucao.auto_avaliacao_pontos_fortes)
+            if 'auto_avaliacao_pontos_atencao' in data:
+                execucao.auto_avaliacao_pontos_atencao = parse_json_field(data['auto_avaliacao_pontos_atencao'],
+                                                                          execucao.auto_avaliacao_pontos_atencao)
+            if 'avaliacao_metodologia' in data:
+                execucao.avaliacao_metodologia = parse_json_field(data['avaliacao_metodologia'], execucao.avaliacao_metodologia)
             execucao.observacoes = data.get('observacoes', execucao.observacoes)
             execucao.audit_user_id = user.id_for_audit
             execucao.save()
@@ -581,13 +617,13 @@ class SupervisaoSessaoService(BaseService):
                 data_modulo_anterior=data.get('data_modulo_anterior'),
                 identificador_grupo=data['identificador_grupo'],
                 numero_participantes=data.get('numero_participantes', '0'),
-                praticas_positivas_estrategias=data.get('praticas_positivas_estrategias', []),
-                desafios_transmissao=data.get('desafios_transmissao', []),
+                praticas_positivas_estrategias=parse_json_field(data.get('praticas_positivas_estrategias'), []),
+                desafios_transmissao=parse_json_field(data.get('desafios_transmissao'), []),
                 necessita_encaminhamento=data.get('necessita_encaminhamento', False),
-                auto_avaliacao_pontos_fortes=data.get('auto_avaliacao_pontos_fortes', []),
-                auto_avaliacao_pontos_atencao=data.get('auto_avaliacao_pontos_atencao', []),
-                avaliacao_execucao_metodologia=data.get('avaliacao_execucao_metodologia', []),
-                perguntas_avaliacao=data.get('perguntas_avaliacao', {}),
+                auto_avaliacao_pontos_fortes=parse_json_field(data.get('auto_avaliacao_pontos_fortes'), []),
+                auto_avaliacao_pontos_atencao=parse_json_field(data.get('auto_avaliacao_pontos_atencao'), []),
+                avaliacao_execucao_metodologia=parse_json_field(data.get('avaliacao_execucao_metodologia'), []),
+                perguntas_avaliacao=parse_json_field(data.get('perguntas_avaliacao'), {}),
                 pontos_positivos=data.get('pontos_positivos'),
                 pontos_melhorar=data.get('pontos_melhorar'),
                 observacoes=data.get('observacoes')
@@ -610,18 +646,24 @@ class SupervisaoSessaoService(BaseService):
 
         with transaction.atomic():
             supervisao.numero_participantes = data.get('numero_participantes', supervisao.numero_participantes)
-            supervisao.praticas_positivas_estrategias = data.get('praticas_positivas_estrategias',
-                                                                 supervisao.praticas_positivas_estrategias)
-            supervisao.desafios_transmissao = data.get('desafios_transmissao', supervisao.desafios_transmissao)
+            if 'praticas_positivas_estrategias' in data:
+                supervisao.praticas_positivas_estrategias = parse_json_field(data['praticas_positivas_estrategias'],
+                                                                             supervisao.praticas_positivas_estrategias)
+            if 'desafios_transmissao' in data:
+                supervisao.desafios_transmissao = parse_json_field(data['desafios_transmissao'], supervisao.desafios_transmissao)
             supervisao.necessita_encaminhamento = data.get('necessita_encaminhamento',
                                                            supervisao.necessita_encaminhamento)
-            supervisao.auto_avaliacao_pontos_fortes = data.get('auto_avaliacao_pontos_fortes',
-                                                               supervisao.auto_avaliacao_pontos_fortes)
-            supervisao.auto_avaliacao_pontos_atencao = data.get('auto_avaliacao_pontos_atencao',
-                                                                supervisao.auto_avaliacao_pontos_atencao)
-            supervisao.avaliacao_execucao_metodologia = data.get('avaliacao_execucao_metodologia',
-                                                                  supervisao.avaliacao_execucao_metodologia)
-            supervisao.perguntas_avaliacao = data.get('perguntas_avaliacao', supervisao.perguntas_avaliacao)
+            if 'auto_avaliacao_pontos_fortes' in data:
+                supervisao.auto_avaliacao_pontos_fortes = parse_json_field(data['auto_avaliacao_pontos_fortes'],
+                                                                           supervisao.auto_avaliacao_pontos_fortes)
+            if 'auto_avaliacao_pontos_atencao' in data:
+                supervisao.auto_avaliacao_pontos_atencao = parse_json_field(data['auto_avaliacao_pontos_atencao'],
+                                                                            supervisao.auto_avaliacao_pontos_atencao)
+            if 'avaliacao_execucao_metodologia' in data:
+                supervisao.avaliacao_execucao_metodologia = parse_json_field(data['avaliacao_execucao_metodologia'],
+                                                                              supervisao.avaliacao_execucao_metodologia)
+            if 'perguntas_avaliacao' in data:
+                supervisao.perguntas_avaliacao = parse_json_field(data['perguntas_avaliacao'], supervisao.perguntas_avaliacao)
             supervisao.pontos_positivos = data.get('pontos_positivos', supervisao.pontos_positivos)
             supervisao.pontos_melhorar = data.get('pontos_melhorar', supervisao.pontos_melhorar)
             supervisao.observacoes = data.get('observacoes', supervisao.observacoes)
