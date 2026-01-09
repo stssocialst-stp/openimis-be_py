@@ -93,6 +93,7 @@ def convert_ids_in_session_data(session_data):
     """
     id_fields = [
         'coordenador_distrital_id',
+        'coordenador_nacional_id',
         'tecnico_social_id',
         'distrito_id',
         'modulo_maior_dificuldade_id',

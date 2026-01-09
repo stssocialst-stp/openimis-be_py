@@ -516,31 +516,68 @@ class RoteiroReuniaoBimestral(core_models.VersionedModel):
     uuid = models.CharField(db_column='RoteiroReuniaoUUID', max_length=36, default=uuid.uuid4, unique=True)
 
     # Informações da reunião
-    data_reuniao = models.DateField(db_column='DataReuniao')
-    horario = models.TimeField(db_column='Horario')
-    coordenador_nacional = models.CharField(db_column='CoordenadorNacional', max_length=255)
-    participantes = models.TextField(db_column='Participantes',
-                                     help_text='Lista de todos os participantes presentes na reunião')
+    data_reuniao = models.DateField(db_column='DataReuniao', help_text='Data da reunião')
+    horario = models.TimeField(db_column='Horario', help_text='Horário da reunião')
 
-    # Resumo da agenda (checklist dos 6 tópicos padrão)
-    # Cada item: {topico: str, duracao: int, concluido: bool}
-    resumo_agenda = models.JSONField(db_column='ResumoAgenda', default=list, blank=True,
-                                     help_text='Lista de tópicos discutidos durante a reunião')
+    # Coordenador Nacional
+    coordenador_nacional = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        db_column='CoordenadorNacionalID',
+        on_delete=models.PROTECT,
+        related_name='reunioes_coordenadas',
+        help_text='Coordenador nacional responsável pela reunião'
+    )
+
+    # Participantes (array de user IDs)
+    participantes = models.JSONField(
+        db_column='Participantes',
+        default=list,
+        blank=True,
+        help_text='Array de IDs dos usuários participantes da reunião'
+    )
 
     # Conteúdos da reunião
-    desafios_solucoes = models.TextField(db_column='DesafiosSolucoes',
-                                         help_text='Principais desafios enfrentados e soluções aplicadas')
-    oportunidades_praticas = models.TextField(db_column='OportunidadesPraticas',
-                                              help_text='Oportunidades identificadas e práticas bem-sucedidas')
-    analise_dados_tendencias = models.TextField(db_column='AnaliseDadosTendencias',
-                                                 help_text='Análise de dados e tendências identificadas')
-    acoes_definidas = models.TextField(db_column='AcoesDefinidas',
-                                        help_text='Ações definidas, responsáveis e prazos')
+    principais_desafios = models.TextField(
+        db_column='PrincipaisDesafios',
+        null=True,
+        blank=True,
+        help_text='Principais desafios discutidos na reunião'
+    )
+
+    oportunidades_melhoria = models.TextField(
+        db_column='OportunidadesMelhoria',
+        null=True,
+        blank=True,
+        help_text='Oportunidades de melhoria identificadas'
+    )
+
+    apreciacao_relatorios = models.TextField(
+        db_column='ApreciacaoRelatorios',
+        null=True,
+        blank=True,
+        help_text='Apreciação e análise dos relatórios apresentados'
+    )
+
+    plano_acao = models.TextField(
+        db_column='PlanoAcao',
+        null=True,
+        blank=True,
+        help_text='Plano de ação definido com responsáveis e prazos'
+    )
 
     # Próxima reunião
-    data_proxima_reuniao = models.DateField(db_column='DataProximaReuniao', null=True, blank=True)
-    observacoes_proxima_reuniao = models.TextField(db_column='ObservacoesProximaReuniao',
-                                                    null=True, blank=True)
+    proxima_reuniao = models.TextField(
+        db_column='ProximaReuniao',
+        null=True,
+        blank=True,
+        help_text='Informações sobre a próxima reunião (data, horário, local)'
+    )
+    data_proxima_reuniao = models.DateField(
+        db_column='DataProximaReuniao',
+        null=True,
+        blank=True,
+        help_text='Data da próxima reunião'
+    )
 
     class Meta:
         managed = True

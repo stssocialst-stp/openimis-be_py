@@ -919,7 +919,7 @@ class EncaminhamentoService(BaseService):
 
 
 class RoteiroReuniaoService(BaseService):
-    """Service for Bimonthly Meeting Agenda operations"""
+    """Service for Bimonthly Meeting Agenda operations (Ferramenta 6)"""
 
     @classmethod
     def create(cls, data, user):
@@ -932,15 +932,14 @@ class RoteiroReuniaoService(BaseService):
             roteiro = RoteiroReuniaoBimestral.objects.create(
                 data_reuniao=data['data_reuniao'],
                 horario=data['horario'],
-                coordenador_nacional=data['coordenador_nacional'],
-                participantes=data['participantes'],
-                resumo_agenda=data.get('resumo_agenda', []),
-                desafios_solucoes=data['desafios_solucoes'],
-                oportunidades_praticas=data['oportunidades_praticas'],
-                analise_dados_tendencias=data['analise_dados_tendencias'],
-                acoes_definidas=data['acoes_definidas'],
-                data_proxima_reuniao=data.get('data_proxima_reuniao'),
-                observacoes_proxima_reuniao=data.get('observacoes_proxima_reuniao')
+                coordenador_nacional_id=data['coordenador_nacional_id'],
+                participantes=parse_json_field(data.get('participantes'), []),
+                principais_desafios=data.get('principais_desafios'),
+                oportunidades_melhoria=data.get('oportunidades_melhoria'),
+                apreciacao_relatorios=data.get('apreciacao_relatorios'),
+                plano_acao=data.get('plano_acao'),
+                proxima_reuniao=data.get('proxima_reuniao'),
+                data_proxima_reuniao=data.get('data_proxima_reuniao')
             )
             roteiro.audit_user_id = user.id_for_audit
             roteiro.save()
@@ -964,24 +963,22 @@ class RoteiroReuniaoService(BaseService):
                 roteiro.data_reuniao = data['data_reuniao']
             if 'horario' in data:
                 roteiro.horario = data['horario']
-            if 'coordenador_nacional' in data:
-                roteiro.coordenador_nacional = data['coordenador_nacional']
+            if 'coordenador_nacional_id' in data:
+                roteiro.coordenador_nacional_id = data['coordenador_nacional_id']
             if 'participantes' in data:
-                roteiro.participantes = data['participantes']
-            if 'resumo_agenda' in data:
-                roteiro.resumo_agenda = data['resumo_agenda']
-            if 'desafios_solucoes' in data:
-                roteiro.desafios_solucoes = data['desafios_solucoes']
-            if 'oportunidades_praticas' in data:
-                roteiro.oportunidades_praticas = data['oportunidades_praticas']
-            if 'analise_dados_tendencias' in data:
-                roteiro.analise_dados_tendencias = data['analise_dados_tendencias']
-            if 'acoes_definidas' in data:
-                roteiro.acoes_definidas = data['acoes_definidas']
+                roteiro.participantes = parse_json_field(data['participantes'], roteiro.participantes)
+            if 'principais_desafios' in data:
+                roteiro.principais_desafios = data['principais_desafios']
+            if 'oportunidades_melhoria' in data:
+                roteiro.oportunidades_melhoria = data['oportunidades_melhoria']
+            if 'apreciacao_relatorios' in data:
+                roteiro.apreciacao_relatorios = data['apreciacao_relatorios']
+            if 'plano_acao' in data:
+                roteiro.plano_acao = data['plano_acao']
+            if 'proxima_reuniao' in data:
+                roteiro.proxima_reuniao = data['proxima_reuniao']
             if 'data_proxima_reuniao' in data:
                 roteiro.data_proxima_reuniao = data['data_proxima_reuniao']
-            if 'observacoes_proxima_reuniao' in data:
-                roteiro.observacoes_proxima_reuniao = data['observacoes_proxima_reuniao']
 
             roteiro.audit_user_id = user.id_for_audit
             roteiro.save()
