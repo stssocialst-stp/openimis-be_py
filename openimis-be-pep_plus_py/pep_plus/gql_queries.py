@@ -192,7 +192,8 @@ class RoteiroReuniaoBimestralGQLType(DjangoObjectType):
         model = RoteiroReuniaoBimestral
         interfaces = (graphene.relay.Node,)
         filter_fields = {
-            "coordenador_nacional": ["exact", "icontains"],
+            "coordenador_nacional": ["exact"],
+            "coordenador_nacional__username": ["exact", "icontains"],
             "data_reuniao": ["exact", "lt", "lte", "gt", "gte"],
             "data_proxima_reuniao": ["exact", "lt", "lte", "gt", "gte"],
         }
