@@ -1009,7 +1009,7 @@ class RelatorioSupervisaoService(BaseService):
 
     @classmethod
     def create(cls, data, user):
-        """Create a new bimonthly supervision report"""
+        """Create a new bimonthly supervision report (Ferramenta 7)"""
         from .models import RelatorioSupervisaoBimestral
 
         # Check permissions
@@ -1018,18 +1018,16 @@ class RelatorioSupervisaoService(BaseService):
 
         with transaction.atomic():
             relatorio = RelatorioSupervisaoBimestral.objects.create(
-                nome_supervisores=data['nome_supervisores'],
-                num_sessoes_supervisionadas=data['num_sessoes_supervisionadas'],
-                num_tecnicos_supervisionados=data['num_tecnicos_supervisionados'],
+                supervisores=parse_json_field(data.get('supervisores'), []),
+                numero_sessoes=data['numero_sessoes'],
+                numero_tecnicos_formadores=data['numero_tecnicos_formadores'],
                 distrito_id=data['distrito_id'],
                 periodo=data['periodo'],
                 ano=data['ano'],
-                periodo_inicio=data['periodo_inicio'],
-                periodo_fim=data['periodo_fim'],
-                avaliacoes_tecnicos=data.get('avaliacoes_tecnicos', []),
-                notas_sessoes_pep=data.get('notas_sessoes_pep', {}),
-                modulo_maior_dificuldade_id=data.get('modulo_maior_dificuldade_id'),
-                observacoes_adicionais=data.get('observacoes_adicionais')
+                avaliacoes_tecnicos=parse_json_field(data.get('avaliacoes_tecnicos'), []),
+                sessoes_pep=parse_json_field(data.get('sessoes_pep'), []),
+                modulos_dificuldade=parse_json_field(data.get('modulos_dificuldade'), []),
+                observacoes=data.get('observacoes')
             )
             relatorio.audit_user_id = user.id_for_audit
             relatorio.save()
@@ -1037,7 +1035,7 @@ class RelatorioSupervisaoService(BaseService):
 
     @classmethod
     def update(cls, data, user):
-        """Update an existing bimonthly supervision report"""
+        """Update an existing bimonthly supervision report (Ferramenta 7)"""
         from .models import RelatorioSupervisaoBimestral
 
         try:
@@ -1051,30 +1049,26 @@ class RelatorioSupervisaoService(BaseService):
 
         with transaction.atomic():
             # Update fields if provided
-            if 'nome_supervisores' in data:
-                relatorio.nome_supervisores = data['nome_supervisores']
-            if 'num_sessoes_supervisionadas' in data:
-                relatorio.num_sessoes_supervisionadas = data['num_sessoes_supervisionadas']
-            if 'num_tecnicos_supervisionados' in data:
-                relatorio.num_tecnicos_supervisionados = data['num_tecnicos_supervisionados']
+            if 'supervisores' in data:
+                relatorio.supervisores = parse_json_field(data['supervisores'], relatorio.supervisores)
+            if 'numero_sessoes' in data:
+                relatorio.numero_sessoes = data['numero_sessoes']
+            if 'numero_tecnicos_formadores' in data:
+                relatorio.numero_tecnicos_formadores = data['numero_tecnicos_formadores']
             if 'distrito_id' in data:
                 relatorio.distrito_id = data['distrito_id']
             if 'periodo' in data:
                 relatorio.periodo = data['periodo']
             if 'ano' in data:
                 relatorio.ano = data['ano']
-            if 'periodo_inicio' in data:
-                relatorio.periodo_inicio = data['periodo_inicio']
-            if 'periodo_fim' in data:
-                relatorio.periodo_fim = data['periodo_fim']
             if 'avaliacoes_tecnicos' in data:
-                relatorio.avaliacoes_tecnicos = data['avaliacoes_tecnicos']
-            if 'notas_sessoes_pep' in data:
-                relatorio.notas_sessoes_pep = data['notas_sessoes_pep']
-            if 'modulo_maior_dificuldade_id' in data:
-                relatorio.modulo_maior_dificuldade_id = data['modulo_maior_dificuldade_id']
-            if 'observacoes_adicionais' in data:
-                relatorio.observacoes_adicionais = data['observacoes_adicionais']
+                relatorio.avaliacoes_tecnicos = parse_json_field(data['avaliacoes_tecnicos'], relatorio.avaliacoes_tecnicos)
+            if 'sessoes_pep' in data:
+                relatorio.sessoes_pep = parse_json_field(data['sessoes_pep'], relatorio.sessoes_pep)
+            if 'modulos_dificuldade' in data:
+                relatorio.modulos_dificuldade = parse_json_field(data['modulos_dificuldade'], relatorio.modulos_dificuldade)
+            if 'observacoes' in data:
+                relatorio.observacoes = data['observacoes']
 
             relatorio.audit_user_id = user.id_for_audit
             relatorio.save()

@@ -596,52 +596,83 @@ class RelatorioSupervisaoBimestral(core_models.VersionedModel):
     uuid = models.CharField(db_column='RelatorioSupervisaoUUID', max_length=36, default=uuid.uuid4, unique=True)
 
     # 1. Identificação
-    nome_supervisores = models.TextField(db_column='NomeSupervisores',
-                                         help_text='Nome(s) do(s) supervisor(es) responsável(eis) pelo relatório')
-    num_sessoes_supervisionadas = models.IntegerField(db_column='NumSessoes', default=0,
-                                                       help_text='Quantidade total de sessões acompanhadas no bimestre')
-    num_tecnicos_supervisionados = models.IntegerField(db_column='NumTecnicos', default=0,
-                                                        help_text='Total de técnicos formadores supervisionados')
+    supervisores = models.JSONField(
+        db_column='Supervisores',
+        default=list,
+        blank=True,
+        help_text='Array de IDs dos supervisores responsáveis pelo relatório'
+    )
+    numero_sessoes = models.IntegerField(
+        db_column='NumeroSessoes',
+        default=0,
+        help_text='Quantidade total de sessões supervisionadas no bimestre'
+    )
+    numero_tecnicos_formadores = models.IntegerField(
+        db_column='NumeroTecnicosFormadores',
+        default=0,
+        help_text='Total de técnicos formadores supervisionados'
+    )
 
     # 2. Marque seu Distrito
-    distrito = models.ForeignKey('location.Location', models.DO_NOTHING, db_column='DistritoID',
-                                 related_name='relatorios_supervisao')
+    distrito = models.ForeignKey(
+        'location.Location',
+        on_delete=models.PROTECT,
+        db_column='DistritoID',
+        related_name='relatorios_supervisao',
+        help_text='Distrito do relatório'
+    )
 
     # 3. Marque o Período do Relatório
     PERIODO_CHOICES = [
-        (1, 'Janeiro e Fevereiro'),
-        (2, 'Março e Abril'),
-        (3, 'Maio e Junho'),
-        (4, 'Julho e Agosto'),
-        (5, 'Setembro e Outubro'),
-        (6, 'Novembro e Dezembro'),
+        ('JAN_FEV', 'Janeiro e Fevereiro'),
+        ('MAR_ABR', 'Março e Abril'),
+        ('MAI_JUN', 'Maio e Junho'),
+        ('JUL_AGO', 'Julho e Agosto'),
+        ('SET_OUT', 'Setembro e Outubro'),
+        ('NOV_DEZ', 'Novembro e Dezembro'),
     ]
-    periodo = models.IntegerField(db_column='Periodo', choices=PERIODO_CHOICES)
-    ano = models.IntegerField(db_column='Ano')
-    periodo_inicio = models.DateField(db_column='PeriodoInicio')
-    periodo_fim = models.DateField(db_column='PeriodoFim')
+    periodo = models.CharField(
+        db_column='Periodo',
+        max_length=10,
+        choices=PERIODO_CHOICES,
+        help_text='Período bimestral do relatório'
+    )
+    ano = models.IntegerField(db_column='Ano', help_text='Ano do relatório')
 
     # 4. Avaliação dos Técnicos Formadores
-    # Array de objetos: [{nome_tecnico: str, pontos_positivos: str, pontos_aprimorar: str}, ...]
-    avaliacoes_tecnicos = models.JSONField(db_column='AvaliacoesTecnicos', default=list, blank=True,
-                                           help_text='Avaliações dos técnicos formadores supervisionados')
+    # Array: [{idDoTecnico: str, pontosPositivos: str, pontosAprimorar: str}, ...]
+    avaliacoes_tecnicos = models.JSONField(
+        db_column='AvaliacoesTecnicos',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{idDoTecnico, pontosPositivos, pontosAprimorar}]'
+    )
 
     # 5. Sessões do PEP+
-    # Objeto com as 10 notas dos passos: {passo_a: float, passo_b: float, ..., passo_j: float}
-    notas_sessoes_pep = models.JSONField(db_column='NotasSessoes', default=dict, blank=True,
-                                         help_text='Notas dos 10 passos das sessões supervisionadas')
+    # Array: [{passo: str, nota: number}, ...]
+    sessoes_pep = models.JSONField(
+        db_column='SessoesPep',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{passo, nota}]'
+    )
 
-    # 5B. Qual módulo no Bimestre observou maior dificuldade
-    modulo_maior_dificuldade = models.ForeignKey(ModuloEducacional, models.DO_NOTHING,
-                                                  db_column='ModuloDificuldadeID',
-                                                  related_name='relatorios_dificuldade',
-                                                  null=True, blank=True,
-                                                  help_text='Módulo com menor nota (maior dificuldade)')
+    # 6. Módulos com maior dificuldade
+    # Array: [{modulo: str, selected: boolean}, ...]
+    modulos_dificuldade = models.JSONField(
+        db_column='ModulosDificuldade',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{modulo, selected}]'
+    )
 
-    # 6. Observações Adicionais
-    observacoes_adicionais = models.TextField(db_column='ObservacoesAdicionais',
-                                              null=True, blank=True,
-                                              help_text='Observações complementares para discussão')
+    # 7. Observações
+    observacoes = models.TextField(
+        db_column='Observacoes',
+        null=True,
+        blank=True,
+        help_text='Observações adicionais do relatório'
+    )
 
     class Meta:
         managed = True

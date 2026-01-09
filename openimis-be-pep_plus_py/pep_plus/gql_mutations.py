@@ -1055,19 +1055,17 @@ class DeleteRoteiroReuniaoMutation(OpenIMISMutation):
 # ========== SUPERVISION REPORT MUTATIONS (FERRAMENTA 7) ==========
 
 class CreateRelatorioSupervisaoInput(OpenIMISMutation.Input):
-    """Input for creating a bimonthly supervision report"""
-    nome_supervisores = graphene.String(required=True)
-    num_sessoes_supervisionadas = graphene.Int(required=True)
-    num_tecnicos_supervisionados = graphene.Int(required=True)
+    """Input for creating a bimonthly supervision report (Ferramenta 7)"""
+    supervisores = graphene.JSONString(required=False)  # Array de user IDs
+    numero_sessoes = graphene.Int(required=True)
+    numero_tecnicos_formadores = graphene.Int(required=True)
     distrito_id = graphene.String(required=True)
-    periodo = graphene.Int(required=True)
+    periodo = graphene.String(required=True)  # Choices: JAN_FEV, MAR_ABR, etc.
     ano = graphene.Int(required=True)
-    periodo_inicio = graphene.Date(required=True)
-    periodo_fim = graphene.Date(required=True)
-    avaliacoes_tecnicos = graphene.JSONString(required=False)
-    notas_sessoes_pep = graphene.JSONString(required=False)
-    modulo_maior_dificuldade_id = graphene.String(required=False)
-    observacoes_adicionais = graphene.String(required=False)
+    avaliacoes_tecnicos = graphene.JSONString(required=False)  # Array: [{idDoTecnico, pontosPositivos, pontosAprimorar}]
+    sessoes_pep = graphene.JSONString(required=False)  # Array: [{passo, nota}]
+    modulos_dificuldade = graphene.JSONString(required=False)  # Array: [{modulo, selected}]
+    observacoes = graphene.String(required=False)
 
 
 class CreateRelatorioSupervisaoMutation(OpenIMISMutation):
@@ -1094,20 +1092,18 @@ class CreateRelatorioSupervisaoMutation(OpenIMISMutation):
 
 
 class UpdateRelatorioSupervisaoInput(OpenIMISMutation.Input):
-    """Input for updating a bimonthly supervision report"""
+    """Input for updating a bimonthly supervision report (Ferramenta 7)"""
     id = graphene.Int(required=True)
-    nome_supervisores = graphene.String(required=False)
-    num_sessoes_supervisionadas = graphene.Int(required=False)
-    num_tecnicos_supervisionados = graphene.Int(required=False)
+    supervisores = graphene.JSONString(required=False)
+    numero_sessoes = graphene.Int(required=False)
+    numero_tecnicos_formadores = graphene.Int(required=False)
     distrito_id = graphene.String(required=False)
-    periodo = graphene.Int(required=False)
+    periodo = graphene.String(required=False)
     ano = graphene.Int(required=False)
-    periodo_inicio = graphene.Date(required=False)
-    periodo_fim = graphene.Date(required=False)
     avaliacoes_tecnicos = graphene.JSONString(required=False)
-    notas_sessoes_pep = graphene.JSONString(required=False)
-    modulo_maior_dificuldade_id = graphene.String(required=False)
-    observacoes_adicionais = graphene.String(required=False)
+    sessoes_pep = graphene.JSONString(required=False)
+    modulos_dificuldade = graphene.JSONString(required=False)
+    observacoes = graphene.String(required=False)
 
 
 class UpdateRelatorioSupervisaoMutation(OpenIMISMutation):
