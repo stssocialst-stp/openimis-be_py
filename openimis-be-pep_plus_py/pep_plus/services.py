@@ -623,9 +623,10 @@ class SupervisaoSessaoService(BaseService):
                 auto_avaliacao_pontos_fortes=parse_json_field(data.get('auto_avaliacao_pontos_fortes'), []),
                 auto_avaliacao_pontos_atencao=parse_json_field(data.get('auto_avaliacao_pontos_atencao'), []),
                 avaliacao_execucao_metodologia=parse_json_field(data.get('avaliacao_execucao_metodologia'), []),
-                perguntas_avaliacao=parse_json_field(data.get('perguntas_avaliacao'), {}),
-                pontos_positivos=data.get('pontos_positivos'),
-                pontos_melhorar=data.get('pontos_melhorar'),
+                metodologia_passos=parse_json_field(data.get('metodologia_passos'), []),
+                feedback_pontos_fortes=data.get('feedback_pontos_fortes'),
+                feedback_desafios=data.get('feedback_desafios'),
+                compromisso_formador=data.get('compromisso_formador'),
                 observacoes=data.get('observacoes')
             )
             supervisao.audit_user_id = user.id_for_audit
@@ -662,10 +663,11 @@ class SupervisaoSessaoService(BaseService):
             if 'avaliacao_execucao_metodologia' in data:
                 supervisao.avaliacao_execucao_metodologia = parse_json_field(data['avaliacao_execucao_metodologia'],
                                                                               supervisao.avaliacao_execucao_metodologia)
-            if 'perguntas_avaliacao' in data:
-                supervisao.perguntas_avaliacao = parse_json_field(data['perguntas_avaliacao'], supervisao.perguntas_avaliacao)
-            supervisao.pontos_positivos = data.get('pontos_positivos', supervisao.pontos_positivos)
-            supervisao.pontos_melhorar = data.get('pontos_melhorar', supervisao.pontos_melhorar)
+            if 'metodologia_passos' in data:
+                supervisao.metodologia_passos = parse_json_field(data['metodologia_passos'], supervisao.metodologia_passos)
+            supervisao.feedback_pontos_fortes = data.get('feedback_pontos_fortes', supervisao.feedback_pontos_fortes)
+            supervisao.feedback_desafios = data.get('feedback_desafios', supervisao.feedback_desafios)
+            supervisao.compromisso_formador = data.get('compromisso_formador', supervisao.compromisso_formador)
             supervisao.observacoes = data.get('observacoes', supervisao.observacoes)
             supervisao.audit_user_id = user.id_for_audit
             supervisao.save()

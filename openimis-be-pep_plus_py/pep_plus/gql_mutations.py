@@ -617,10 +617,12 @@ class CreateSupervisaoSessaoInput(OpenIMISMutation.Input):
     # Avaliação da execução dos passos da metodologia: [{ descricao: "...", confirmacao: "Não fez/Não adequado/Adequado/Excelente/N/A" }]
     avaliacao_execucao_metodologia = graphene.JSONString(required=False)
 
-    # Campos legados (compatibilidade)
-    perguntas_avaliacao = graphene.JSONString(required=False)
-    pontos_positivos = graphene.String(required=False)
-    pontos_melhorar = graphene.String(required=False)
+    # Novos campos de feedback
+    metodologia_passos = graphene.JSONString(required=False)
+    feedback_pontos_fortes = graphene.String(required=False)
+    feedback_desafios = graphene.String(required=False)
+    compromisso_formador = graphene.String(required=False)
+
     observacoes = graphene.String(required=False)
 
 
@@ -668,10 +670,12 @@ class UpdateSupervisaoSessaoInput(OpenIMISMutation.Input):
     # Avaliação da execução dos passos da metodologia
     avaliacao_execucao_metodologia = graphene.JSONString(required=False)
 
-    # Campos legados (compatibilidade)
-    perguntas_avaliacao = graphene.JSONString(required=False)
-    pontos_positivos = graphene.String(required=False)
-    pontos_melhorar = graphene.String(required=False)
+    # Novos campos de feedback
+    metodologia_passos = graphene.JSONString(required=False)
+    feedback_pontos_fortes = graphene.String(required=False)
+    feedback_desafios = graphene.String(required=False)
+    compromisso_formador = graphene.String(required=False)
+
     observacoes = graphene.String(required=False)
 
 

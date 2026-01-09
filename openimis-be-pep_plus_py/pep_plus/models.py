@@ -344,10 +344,32 @@ class SupervisaoSessao(core_models.VersionedModel):
         help_text='Array de objetos: [{ descricao, confirmacao: Não fez/Não adequado/Adequado/Excelente/N/A }]'
     )
 
-    # Campos legados (manter por compatibilidade)
-    perguntas_avaliacao = models.JSONField(db_column='PerguntasAvaliacao', default=dict, blank=True)
-    pontos_positivos = models.TextField(db_column='PontosPositivos', null=True, blank=True)
-    pontos_melhorar = models.TextField(db_column='PontosMelhorar', null=True, blank=True)
+    # Novos campos de feedback
+    metodologia_passos = models.JSONField(
+        db_column='MetodologiaPassos',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ descricao, confirmacao: Adequado/N/A/etc }]'
+    )
+    feedback_pontos_fortes = models.TextField(
+        db_column='FeedbackPontosFortes',
+        null=True,
+        blank=True,
+        help_text='Feedback sobre pontos fortes observados'
+    )
+    feedback_desafios = models.TextField(
+        db_column='FeedbackDesafios',
+        null=True,
+        blank=True,
+        help_text='Feedback sobre desafios observados'
+    )
+    compromisso_formador = models.TextField(
+        db_column='CompromissoFormador',
+        null=True,
+        blank=True,
+        help_text='Compromissos assumidos pelo formador'
+    )
+
     observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
 
     class Meta:
