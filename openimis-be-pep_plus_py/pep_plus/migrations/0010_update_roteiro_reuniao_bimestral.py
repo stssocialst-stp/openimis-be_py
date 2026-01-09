@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
         ),
 
         # Change coordenador_nacional from CharField to ForeignKey
-        # First, we need to use RunSQL to handle the column type change
+        # Do everything in RunSQL to avoid "column already exists" errors
         migrations.RunSQL(
             sql="""
                 DO $$
@@ -59,14 +59,25 @@ class Migration(migrations.Migration):
                         RENAME COLUMN "CoordenadorNacional" TO "CoordenadorNacional_old";
                     END IF;
 
-                    -- Add new column if it doesn't exist
+                    -- Add new column with ForeignKey constraint if it doesn't exist
                     IF NOT EXISTS (
                         SELECT 1 FROM information_schema.columns
                         WHERE table_name='tblRoteiroReuniaoBimestral'
                         AND column_name='CoordenadorNacionalID'
                     ) THEN
                         ALTER TABLE "tblRoteiroReuniaoBimestral"
-                        ADD COLUMN "CoordenadorNacionalID" integer NULL;
+                        ADD COLUMN "CoordenadorNacionalID" uuid NULL
+                        CONSTRAINT "tblRoteiroReuniaoBim_CoordenadorNacionalI_d1f07c91_fk_core_User"
+                        REFERENCES "core_User"("id") DEFERRABLE INITIALLY DEFERRED;
+                    END IF;
+
+                    -- Drop old column if it exists
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='CoordenadorNacional_old'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral" DROP COLUMN "CoordenadorNacional_old";
                     END IF;
                 END $$;
             """,
@@ -81,48 +92,8 @@ class Migration(migrations.Migration):
                         ALTER TABLE "tblRoteiroReuniaoBimestral"
                         DROP COLUMN "CoordenadorNacionalID";
                     END IF;
-
-                    IF EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name='tblRoteiroReuniaoBimestral'
-                        AND column_name='CoordenadorNacional_old'
-                    ) THEN
-                        ALTER TABLE "tblRoteiroReuniaoBimestral"
-                        RENAME COLUMN "CoordenadorNacional_old" TO "CoordenadorNacional";
-                    END IF;
                 END $$;
             """
-        ),
-
-        # Add ForeignKey constraint
-        migrations.AddField(
-            model_name='roteiroreuniaobimestral',
-            name='coordenador_nacional',
-            field=models.ForeignKey(
-                db_column='CoordenadorNacionalID',
-                on_delete=django.db.models.deletion.PROTECT,
-                to=settings.AUTH_USER_MODEL,
-                related_name='reunioes_coordenadas',
-                help_text='Coordenador nacional responsável pela reunião',
-                null=True
-            ),
-        ),
-
-        # Drop old coordenador_nacional column
-        migrations.RunSQL(
-            sql="""
-                DO $$
-                BEGIN
-                    IF EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name='tblRoteiroReuniaoBimestral'
-                        AND column_name='CoordenadorNacional_old'
-                    ) THEN
-                        ALTER TABLE "tblRoteiroReuniaoBimestral" DROP COLUMN "CoordenadorNacional_old";
-                    END IF;
-                END $$;
-            """,
-            reverse_sql='-- No reverse'
         ),
 
         # Change participantes from TextField to JSONField
