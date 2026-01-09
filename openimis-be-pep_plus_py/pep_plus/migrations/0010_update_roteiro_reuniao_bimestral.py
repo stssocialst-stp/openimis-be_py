@@ -47,20 +47,50 @@ class Migration(migrations.Migration):
         # First, we need to use RunSQL to handle the column type change
         migrations.RunSQL(
             sql="""
-                -- Rename old column
-                ALTER TABLE "tblRoteiroReuniaoBimestral"
-                RENAME COLUMN "CoordenadorNacional" TO "CoordenadorNacional_old";
+                DO $$
+                BEGIN
+                    -- Rename old column if it exists
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='CoordenadorNacional'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral"
+                        RENAME COLUMN "CoordenadorNacional" TO "CoordenadorNacional_old";
+                    END IF;
 
-                -- Add new column as integer (will be converted to UUID later)
-                ALTER TABLE "tblRoteiroReuniaoBimestral"
-                ADD COLUMN "CoordenadorNacionalID" integer NULL;
+                    -- Add new column if it doesn't exist
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='CoordenadorNacionalID'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral"
+                        ADD COLUMN "CoordenadorNacionalID" integer NULL;
+                    END IF;
+                END $$;
             """,
             reverse_sql="""
-                ALTER TABLE "tblRoteiroReuniaoBimestral"
-                DROP COLUMN "CoordenadorNacionalID";
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='CoordenadorNacionalID'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral"
+                        DROP COLUMN "CoordenadorNacionalID";
+                    END IF;
 
-                ALTER TABLE "tblRoteiroReuniaoBimestral"
-                RENAME COLUMN "CoordenadorNacional_old" TO "CoordenadorNacional";
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='CoordenadorNacional_old'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral"
+                        RENAME COLUMN "CoordenadorNacional_old" TO "CoordenadorNacional";
+                    END IF;
+                END $$;
             """
         ),
 
@@ -80,33 +110,100 @@ class Migration(migrations.Migration):
 
         # Drop old coordenador_nacional column
         migrations.RunSQL(
-            sql='ALTER TABLE "tblRoteiroReuniaoBimestral" DROP COLUMN "CoordenadorNacional_old";',
+            sql="""
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='CoordenadorNacional_old'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral" DROP COLUMN "CoordenadorNacional_old";
+                    END IF;
+                END $$;
+            """,
             reverse_sql='-- No reverse'
         ),
 
         # Change participantes from TextField to JSONField
         migrations.RunSQL(
             sql="""
-                -- Rename old column
-                ALTER TABLE "tblRoteiroReuniaoBimestral"
-                RENAME COLUMN "Participantes" TO "Participantes_old";
+                DO $$
+                BEGIN
+                    -- Rename old column if it exists and new doesn't exist yet
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='Participantes'
+                        AND data_type != 'jsonb'
+                    ) AND NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='Participantes_old'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral"
+                        RENAME COLUMN "Participantes" TO "Participantes_old";
+                    END IF;
 
-                -- Add new column as JSONB
-                ALTER TABLE "tblRoteiroReuniaoBimestral"
-                ADD COLUMN "Participantes" jsonb DEFAULT '[]'::jsonb NOT NULL;
+                    -- Add new column as JSONB if it doesn't exist
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='Participantes'
+                        AND data_type = 'jsonb'
+                    ) THEN
+                        -- Drop Participantes if it exists and is not jsonb
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name='tblRoteiroReuniaoBimestral'
+                            AND column_name='Participantes'
+                        ) THEN
+                            ALTER TABLE "tblRoteiroReuniaoBimestral" DROP COLUMN "Participantes";
+                        END IF;
+
+                        ALTER TABLE "tblRoteiroReuniaoBimestral"
+                        ADD COLUMN "Participantes" jsonb DEFAULT '[]'::jsonb NOT NULL;
+                    END IF;
+                END $$;
             """,
             reverse_sql="""
-                ALTER TABLE "tblRoteiroReuniaoBimestral"
-                DROP COLUMN "Participantes";
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='Participantes'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral"
+                        DROP COLUMN "Participantes";
+                    END IF;
 
-                ALTER TABLE "tblRoteiroReuniaoBimestral"
-                RENAME COLUMN "Participantes_old" TO "Participantes";
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='Participantes_old'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral"
+                        RENAME COLUMN "Participantes_old" TO "Participantes";
+                    END IF;
+                END $$;
             """
         ),
 
         # Drop old participantes column
         migrations.RunSQL(
-            sql='ALTER TABLE "tblRoteiroReuniaoBimestral" DROP COLUMN "Participantes_old";',
+            sql="""
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name='tblRoteiroReuniaoBimestral'
+                        AND column_name='Participantes_old'
+                    ) THEN
+                        ALTER TABLE "tblRoteiroReuniaoBimestral" DROP COLUMN "Participantes_old";
+                    END IF;
+                END $$;
+            """,
             reverse_sql='-- No reverse'
         ),
 
