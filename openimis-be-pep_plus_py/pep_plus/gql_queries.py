@@ -188,6 +188,8 @@ class EncaminhamentoSessaoGQLType(DjangoObjectType):
 class RoteiroReuniaoBimestralGQLType(DjangoObjectType):
     """GraphQL Type for Bimonthly Meeting Agenda"""
 
+    coordenador_nacional = graphene.Field(UserGQLType)
+
     class Meta:
         model = RoteiroReuniaoBimestral
         interfaces = (graphene.relay.Node,)
@@ -204,7 +206,6 @@ class RelatorioSupervisaoBimestralGQLType(DjangoObjectType):
     """GraphQL Type for Bimonthly Supervision Report"""
 
     distrito = graphene.Field(LocationGQLType)
-    modulo_maior_dificuldade = graphene.Field(ModuloEducacionalGQLType)
 
     class Meta:
         model = RelatorioSupervisaoBimestral
@@ -213,9 +214,8 @@ class RelatorioSupervisaoBimestralGQLType(DjangoObjectType):
             "distrito_id": ["exact"],
             "periodo": ["exact"],
             "ano": ["exact", "lt", "lte", "gt", "gte"],
-            "periodo_inicio": ["exact", "lt", "lte", "gt", "gte"],
-            "periodo_fim": ["exact", "lt", "lte", "gt", "gte"],
-            "nome_supervisores": ["exact", "icontains"],
+            "numero_sessoes": ["exact", "lt", "lte", "gt", "gte"],
+            "numero_tecnicos_formadores": ["exact", "lt", "lte", "gt", "gte"],
         }
         connection_class = ExtendedConnection
 
@@ -361,10 +361,12 @@ class Query(graphene.ObjectType):
 
     def resolve_roteiros_reuniao_bimestral(self, info, **kwargs):
         """Resolve bimonthly meeting agendas query"""
-        return RoteiroReuniaoBimestral.objects.filter(validity_to__isnull=True)
+        return RoteiroReuniaoBimestral.objects.filter(validity_to__isnull=True).select_related(
+            'coordenador_nacional'
+        )
 
     def resolve_relatorios_supervisao_bimestral(self, info, **kwargs):
         """Resolve bimonthly supervision reports query"""
         return RelatorioSupervisaoBimestral.objects.filter(validity_to__isnull=True).select_related(
-            'distrito', 'modulo_maior_dificuldade'
+            'distrito'
         )
