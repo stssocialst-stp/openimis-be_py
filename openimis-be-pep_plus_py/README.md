@@ -1,0 +1,141 @@
+# openIMIS Backend PEP+ Module
+
+## Overview
+
+The **PEP+ (Programa de Educação Positiva)** module is an openIMIS extension for managing educational sessions for family groups. It provides comprehensive tools for planning, executing, supervising, and reporting on educational sessions.
+
+## Features
+
+### Educational Tools (Ferramentas)
+
+1. **Ferramenta 1 - Session Planning (SessaoPEP)**
+   - Plan educational sessions with family groups
+   - Define modules, facilitators, and locations
+   - Schedule sessions and track status
+
+2. **Ferramenta 2 - Attendance Registration (PresencaSessao)**
+   - Record attendance for each session
+   - Track participant states (present, absent, justified)
+   - Link attendance to specific families
+
+3. **Ferramenta 3 - Session Execution (ExecucaoSessao)**
+   - Document session execution details
+   - Record topics covered and materials used
+   - Track participant numbers and referral needs
+
+4. **Ferramenta 4 - Session Supervision (SupervisaoSessao)**
+   - Supervise educational sessions
+   - Provide feedback on methodology and execution
+   - Rate session quality and trainer performance
+
+5. **Ferramenta 5 - District Bimonthly Reports (RelatorioDistritalBimestral)**
+   - Generate bimonthly district-level reports
+   - Track sessions, participants, and outcomes
+   - Monitor program indicators
+
+6. **Ferramenta 6 - Bimonthly Meeting Agenda (RoteiroReuniaoBimestral)**
+   - Plan bimonthly coordination meetings
+   - Track participants and discussion topics
+   - Document action plans and next steps
+
+7. **Ferramenta 7 - Bimonthly Supervision Report (RelatorioSupervisaoBimestral)**
+   - Consolidated supervision reports by district
+   - Track supervised sessions and trainers
+   - Identify challenges and improvement areas
+
+8. **Session Referrals (EncaminhamentoSessao)**
+   - Manage referrals identified during sessions
+   - Track referral status and follow-up
+   - Link to social protection services
+
+## Technology Stack
+
+- **Framework**: Django 4.2
+- **API**: GraphQL (via graphene-django)
+- **Database**: PostgreSQL / MS SQL Server
+- **Base Classes**: openIMIS Core (VersionedModel, BaseService, OpenIMISMutation)
+
+## Installation
+
+### Development (Editable Install)
+
+```bash
+# Install in editable mode for development
+pip install -e /path/to/openimis-be-pep_plus_py
+```
+
+### Production (PyPI)
+
+```bash
+pip install openimis-be-pep_plus
+```
+
+## Configuration
+
+The module auto-loads in development when the directory exists. For production, add to `openimis.json`:
+
+```json
+{
+  "name": "pep_plus",
+  "pip": "openimis-be-pep_plus"
+}
+```
+
+## Database Setup
+
+Run migrations after installation:
+
+```bash
+python manage.py migrate pep_plus
+```
+
+## API Documentation
+
+Complete GraphQL API documentation is available in `API_DOCUMENTATION.md`.
+
+### GraphQL Endpoint
+
+```
+POST /api/graphql
+```
+
+### Authentication
+
+All requests require JWT authentication via Bearer token:
+
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+## Django Admin
+
+Access the admin panel to manage PEP+ data:
+
+```
+http://localhost:8000/admin/
+```
+
+Navigate to the "PEP_PLUS" section for full CRUD interface.
+
+## Models
+
+All models extend `VersionedModel` for soft delete and audit tracking:
+
+- `ModuloEducacional` - Educational modules
+- `GrupoFamiliar` - Family groups
+- `SessaoPEP` - Planned sessions
+- `PresencaSessao` - Attendance records
+- `ExecucaoSessao` - Session execution
+- `SupervisaoSessao` - Session supervision
+- `RelatorioDistritalBimestral` - District reports
+- `RoteiroReuniaoBimestral` - Meeting agendas
+- `RelatorioSupervisaoBimestral` - Supervision reports
+- `EncaminhamentoSessao` - Session referrals
+
+## License
+
+GNU AGPL v3
+
+## Support
+
+For issues and questions, contact the openIMIS team at info@openimis.org
