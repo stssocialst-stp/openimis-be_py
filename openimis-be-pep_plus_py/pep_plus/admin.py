@@ -89,7 +89,7 @@ class EncaminhamentoSessaoAdmin(admin.ModelAdmin):
 class RoteiroReuniaoBimestralAdmin(admin.ModelAdmin):
     list_display = ('data_reuniao', 'coordenador_nacional', 'horario', 'data_proxima_reuniao')
     list_filter = ('data_reuniao', 'coordenador_nacional')
-    search_fields = ('coordenador_nacional', 'participantes')
+    search_fields = ('coordenador_nacional__username', 'principais_desafios', 'oportunidades_melhoria')
     date_hierarchy = 'data_reuniao'
     ordering = ('-data_reuniao',)
 
@@ -98,5 +98,5 @@ class RoteiroReuniaoBimestralAdmin(admin.ModelAdmin):
 class RelatorioSupervisaoBimestralAdmin(admin.ModelAdmin):
     list_display = ('distrito', 'periodo', 'ano', 'numero_sessoes', 'numero_tecnicos_formadores')
     list_filter = ('periodo', 'ano', 'distrito')
-    search_fields = ('nome_supervisores', 'distrito__name')
+    search_fields = ('distrito__name', 'observacoes')
     ordering = ('-ano', '-periodo')
