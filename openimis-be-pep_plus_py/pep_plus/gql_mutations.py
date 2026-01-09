@@ -351,6 +351,52 @@ class CreateMultipleSessoesPEPMutation(OpenIMISMutation):
             }]
 
 
+class SessaoPEPUpdateInputType(graphene.InputObjectType):
+    """Input type for a single session in bulk update"""
+    id = graphene.Int(required=True)
+    codigo_sessao = graphene.String(required=False)
+    data_planejamento = graphene.Date(required=False)
+    coordenador_distrital_id = graphene.String(required=False)
+    tecnico_social_id = graphene.String(required=False)
+    distrito_id = graphene.String(required=False)
+    nome_modulo = graphene.String(required=False)
+    mes_modulo_anterior = graphene.String(required=False)
+    dia_semana = graphene.String(required=False)
+    data_sessao = graphene.Date(required=False)
+    hora_sessao = graphene.Time(required=False)
+    zona = graphene.String(required=False)
+    numero_familias = graphene.Int(required=False)
+    grupo_familia_id = graphene.String(required=False)
+    tempo_deslocamento = graphene.Int(required=False)
+    feedback_documentacao = graphene.String(required=False)
+    tem_supervisao = graphene.Boolean(required=False)
+    observacoes = graphene.String(required=False)
+    status = graphene.String(required=False)
+
+
+class UpdateMultipleSessoesPEPMutation(OpenIMISMutation):
+    """Update multiple PEP sessions at once"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "UpdateMultipleSessoesPEPMutation"
+
+    class Input(OpenIMISMutation.Input):
+        sessions = graphene.List(graphene.NonNull(SessaoPEPUpdateInputType), required=True)
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            sessions_list = [dict(session) for session in data.get('sessions', [])]
+            # Convert Relay IDs to database IDs for each session
+            converted_sessions = [convert_ids_in_session_data(session) for session in sessions_list]
+            sessoes = SessaoPEPService.update_multiple(converted_sessions, user)
+            return None
+        except Exception as exc:
+            return [{
+                'message': str(exc),
+                'detail': str(exc)
+            }]
+
+
 # ========== SESSION ATTENDANCE MUTATIONS (Ferramenta 2) ==========
 
 class CreatePresencaSessaoInput(OpenIMISMutation.Input):
@@ -1130,6 +1176,7 @@ class Mutation(graphene.ObjectType):
     create_sessao_pep = CreateSessaoPEPMutation.Field()
     create_multiple_sessoes_pep = CreateMultipleSessoesPEPMutation.Field()
     update_sessao_pep = UpdateSessaoPEPMutation.Field()
+    update_multiple_sessoes_pep = UpdateMultipleSessoesPEPMutation.Field()
     delete_sessao_pep = DeleteSessaoPEPMutation.Field()
 
     # Session Attendance mutations (Ferramenta 2)

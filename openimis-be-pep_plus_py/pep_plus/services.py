@@ -330,6 +330,67 @@ class SessaoPEPService(BaseService):
 
             return sessoes
 
+    @classmethod
+    def update_multiple(cls, sessions_list, user):
+        """Update multiple PEP sessions at once"""
+        # Check permissions
+        if not user.has_perms(['pep_plus.change_sessaopep']):
+            raise PermissionDenied("User does not have permission to update PEP sessions")
+
+        with transaction.atomic():
+            sessoes = []
+            for session_data in sessions_list:
+                sessao_id = session_data.pop('id')
+
+                try:
+                    sessao = SessaoPEP.objects.get(id=sessao_id, validity_to__isnull=True)
+                except SessaoPEP.DoesNotExist:
+                    raise ValidationError([{'message': f'Session with id {sessao_id} not found'}])
+
+                # Update only provided fields
+                if 'codigo_sessao' in session_data:
+                    sessao.codigo_sessao = session_data['codigo_sessao']
+                if 'data_planejamento' in session_data:
+                    sessao.data_planejamento = session_data['data_planejamento']
+                if 'coordenador_distrital_id' in session_data:
+                    sessao.coordenador_distrital_id = session_data['coordenador_distrital_id']
+                if 'tecnico_social_id' in session_data:
+                    sessao.tecnico_social_id = session_data['tecnico_social_id']
+                if 'distrito_id' in session_data:
+                    sessao.distrito_id = session_data['distrito_id']
+                if 'nome_modulo' in session_data:
+                    sessao.nome_modulo = session_data['nome_modulo']
+                if 'mes_modulo_anterior' in session_data:
+                    sessao.mes_modulo_anterior = session_data['mes_modulo_anterior']
+                if 'dia_semana' in session_data:
+                    sessao.dia_semana = session_data['dia_semana']
+                if 'data_sessao' in session_data:
+                    sessao.data_sessao = session_data['data_sessao']
+                if 'hora_sessao' in session_data:
+                    sessao.hora_sessao = session_data['hora_sessao']
+                if 'zona' in session_data:
+                    sessao.zona = session_data['zona']
+                if 'numero_familias' in session_data:
+                    sessao.numero_familias = session_data['numero_familias']
+                if 'grupo_familia_id' in session_data:
+                    sessao.grupo_familia_id = session_data['grupo_familia_id']
+                if 'tempo_deslocamento' in session_data:
+                    sessao.tempo_deslocamento = session_data['tempo_deslocamento']
+                if 'feedback_documentacao' in session_data:
+                    sessao.feedback_documentacao = session_data['feedback_documentacao']
+                if 'tem_supervisao' in session_data:
+                    sessao.tem_supervisao = session_data['tem_supervisao']
+                if 'observacoes' in session_data:
+                    sessao.observacoes = session_data['observacoes']
+                if 'status' in session_data:
+                    sessao.status = session_data['status']
+
+                sessao.audit_user_id = user.id_for_audit
+                sessao.save()
+                sessoes.append(sessao)
+
+            return sessoes
+
 
 class PresencaSessaoService(BaseService):
     """Service for Session Attendance operations (Ferramenta 2)"""
