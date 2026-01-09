@@ -536,6 +536,14 @@ class RoteiroReuniaoBimestral(core_models.VersionedModel):
         help_text='Array de IDs dos usuários participantes da reunião'
     )
 
+    # Resumo da Agenda (checklist de tópicos abordados)
+    resumo_da_agenda = models.JSONField(
+        db_column='ResumoDaAgenda',
+        default=list,
+        blank=True,
+        help_text='Array de objetos: [{ aberturaEBoasVindas, relatoDesafiosSolucoes, compartilhamentoOportunidades, apreciacaoRelatorios, definicaoAcoesEncaminhamentos, encerramentoProximaReuniao }]'
+    )
+
     # Conteúdos da reunião
     principais_desafios = models.TextField(
         db_column='PrincipaisDesafios',

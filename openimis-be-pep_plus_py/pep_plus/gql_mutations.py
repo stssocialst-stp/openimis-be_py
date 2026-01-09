@@ -964,6 +964,7 @@ class CreateRoteiroReuniaoInput(OpenIMISMutation.Input):
     horario = graphene.Time(required=True)
     coordenador_nacional_id = graphene.String(required=True)
     participantes = graphene.JSONString(required=False)  # Array de user IDs
+    resumo_da_agenda = graphene.JSONString(required=False)  # Array: [{ aberturaEBoasVindas, relatoDesafiosSolucoes, ... }]
     principais_desafios = graphene.String(required=False)
     oportunidades_melhoria = graphene.String(required=False)
     apreciacao_relatorios = graphene.String(required=False)
@@ -1001,6 +1002,7 @@ class UpdateRoteiroReuniaoInput(OpenIMISMutation.Input):
     horario = graphene.Time(required=False)
     coordenador_nacional_id = graphene.String(required=False)
     participantes = graphene.JSONString(required=False)
+    resumo_da_agenda = graphene.JSONString(required=False)
     principais_desafios = graphene.String(required=False)
     oportunidades_melhoria = graphene.String(required=False)
     apreciacao_relatorios = graphene.String(required=False)

@@ -934,6 +934,7 @@ class RoteiroReuniaoService(BaseService):
                 horario=data['horario'],
                 coordenador_nacional_id=data['coordenador_nacional_id'],
                 participantes=parse_json_field(data.get('participantes'), []),
+                resumo_da_agenda=parse_json_field(data.get('resumo_da_agenda'), []),
                 principais_desafios=data.get('principais_desafios'),
                 oportunidades_melhoria=data.get('oportunidades_melhoria'),
                 apreciacao_relatorios=data.get('apreciacao_relatorios'),
@@ -967,6 +968,8 @@ class RoteiroReuniaoService(BaseService):
                 roteiro.coordenador_nacional_id = data['coordenador_nacional_id']
             if 'participantes' in data:
                 roteiro.participantes = parse_json_field(data['participantes'], roteiro.participantes)
+            if 'resumo_da_agenda' in data:
+                roteiro.resumo_da_agenda = parse_json_field(data['resumo_da_agenda'], roteiro.resumo_da_agenda)
             if 'principais_desafios' in data:
                 roteiro.principais_desafios = data['principais_desafios']
             if 'oportunidades_melhoria' in data:
