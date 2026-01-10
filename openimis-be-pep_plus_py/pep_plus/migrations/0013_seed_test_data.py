@@ -14,17 +14,39 @@ def should_run_seed():
     return feed_data in ('true', '1', 'yes')
 
 
+def safe_get_model(apps, app_label, model_name, operation_name):
+    """Safely get a model, returning None if not available"""
+    try:
+        return apps.get_model(app_label, model_name)
+    except LookupError:
+        print(f"[PEP+ Seed] {app_label}.{model_name} model not available yet, skipping {operation_name}...")
+        return None
+
+
 def seed_test_users(apps, schema_editor):
     """Create test users for PEP+ system"""
     if not should_run_seed():
         print("[PEP+ Seed] Skipping user seed - FEED_DATA not set to true")
         return
 
-    User = apps.get_model('core', 'User')
+    try:
+        User = apps.get_model('core', 'User')
+    except LookupError:
+        print("[PEP+ Seed] core.User model not available yet, skipping user seed...")
+        return
 
-    # Check if test users already exist
-    if User.objects.filter(username__in=['coord_distrital_test', 'coord_nacional_test']).exists():
-        print("[PEP+ Seed] Test users already exist, skipping...")
+    # Check if User table exists
+    if not schema_editor.connection.introspection.table_names():
+        print("[PEP+ Seed] Database tables not created yet, skipping user seed...")
+        return
+
+    try:
+        # Check if test users already exist
+        if User.objects.filter(username__in=['coord_distrital_test', 'coord_nacional_test']).exists():
+            print("[PEP+ Seed] Test users already exist, skipping...")
+            return
+    except Exception as e:
+        print(f"[PEP+ Seed] Cannot access User table yet: {e}")
         return
 
     print("[PEP+ Seed] Creating test users...")
@@ -38,13 +60,15 @@ def seed_test_users(apps, schema_editor):
         {'username': 'supervisor_test', 'id': uuid.uuid4()},
     ]
 
-    for user_data in users_data:
-        User.objects.create(
-            id=user_data['id'],
-            username=user_data['username'],
-        )
-
-    print(f"[PEP+ Seed] Created {len(users_data)} test users")
+    try:
+        for user_data in users_data:
+            User.objects.create(
+                id=user_data['id'],
+                username=user_data['username'],
+            )
+        print(f"[PEP+ Seed] Created {len(users_data)} test users")
+    except Exception as e:
+        print(f"[PEP+ Seed] Failed to create users: {e}")
 
 
 def seed_test_locations(apps, schema_editor):
@@ -53,60 +77,71 @@ def seed_test_locations(apps, schema_editor):
         print("[PEP+ Seed] Skipping location seed - FEED_DATA not set to true")
         return
 
-    Location = apps.get_model('location', 'Location')
+    try:
+        Location = apps.get_model('location', 'Location')
+    except LookupError:
+        print("[PEP+ Seed] location.Location model not available yet, skipping location seed...")
+        return
 
-    # Check if test locations already exist
-    if Location.objects.filter(code__in=['test_distrito_1', 'test_distrito_2']).exists():
-        print("[PEP+ Seed] Test locations already exist, skipping...")
+    try:
+        # Check if test locations already exist
+        if Location.objects.filter(code__in=['test_distrito_1', 'test_distrito_2']).exists():
+            print("[PEP+ Seed] Test locations already exist, skipping...")
+            return
+    except Exception as e:
+        print(f"[PEP+ Seed] Cannot access Location table yet: {e}")
         return
 
     print("[PEP+ Seed] Creating test locations...")
 
-    # Create parent location (country level)
-    parent_location = Location.objects.create(
-        id=1000000,
-        uuid=uuid.uuid4(),
-        code='TEST_COUNTRY',
-        name='Test Country',
-        type='C',
-    )
-
-    # Create test districts
-    districts = [
-        {'code': 'test_distrito_1', 'name': 'Distrito Teste 1'},
-        {'code': 'test_distrito_2', 'name': 'Distrito Teste 2'},
-    ]
-
-    created_districts = []
-    for i, district_data in enumerate(districts, start=1):
-        district = Location.objects.create(
-            id=1000000 + i,
+    try:
+        # Create parent location (country level)
+        parent_location = Location.objects.create(
+            id=1000000,
             uuid=uuid.uuid4(),
-            code=district_data['code'],
-            name=district_data['name'],
-            type='D',
-            parent_id=parent_location.id,
-        )
-        created_districts.append(district)
-
-    # Create test localities (villages)
-    localities = [
-        {'code': 'test_localidade_1', 'name': 'Localidade Teste 1', 'parent': created_districts[0]},
-        {'code': 'test_localidade_2', 'name': 'Localidade Teste 2', 'parent': created_districts[0]},
-        {'code': 'test_localidade_3', 'name': 'Localidade Teste 3', 'parent': created_districts[1]},
-    ]
-
-    for i, locality_data in enumerate(localities, start=100):
-        Location.objects.create(
-            id=1000000 + i,
-            uuid=uuid.uuid4(),
-            code=locality_data['code'],
-            name=locality_data['name'],
-            type='V',
-            parent=locality_data['parent'],
+            code='TEST_COUNTRY',
+            name='Test Country',
+            type='C',
         )
 
-    print(f"[PEP+ Seed] Created {len(districts)} districts and {len(localities)} localities")
+        # Create test districts
+        districts = [
+            {'code': 'test_distrito_1', 'name': 'Distrito Teste 1'},
+            {'code': 'test_distrito_2', 'name': 'Distrito Teste 2'},
+        ]
+
+        created_districts = []
+        for i, district_data in enumerate(districts, start=1):
+            district = Location.objects.create(
+                id=1000000 + i,
+                uuid=uuid.uuid4(),
+                code=district_data['code'],
+                name=district_data['name'],
+                type='D',
+                parent_id=parent_location.id,
+            )
+            created_districts.append(district)
+
+        # Create test localities (villages)
+        localities = [
+            {'code': 'test_localidade_1', 'name': 'Localidade Teste 1', 'parent': created_districts[0]},
+            {'code': 'test_localidade_2', 'name': 'Localidade Teste 2', 'parent': created_districts[0]},
+            {'code': 'test_localidade_3', 'name': 'Localidade Teste 3', 'parent': created_districts[1]},
+        ]
+
+        for i, locality_data in enumerate(localities, start=100):
+            Location.objects.create(
+                id=1000000 + i,
+                uuid=uuid.uuid4(),
+                code=locality_data['code'],
+                name=locality_data['name'],
+                type='V',
+                parent=locality_data['parent'],
+            )
+
+        print(f"[PEP+ Seed] Created {len(districts)} districts and {len(localities)} localities")
+    except Exception as e:
+        print(f"[PEP+ Seed] Failed to create locations: {e}")
 
 
 def seed_modulos_educacionais(apps, schema_editor):
@@ -115,11 +150,17 @@ def seed_modulos_educacionais(apps, schema_editor):
         print("[PEP+ Seed] Skipping modulos seed - FEED_DATA not set to true")
         return
 
-    ModuloEducacional = apps.get_model('pep_plus', 'ModuloEducacional')
+    ModuloEducacional = safe_get_model(apps, 'pep_plus', 'ModuloEducacional', 'educational modules seed')
+    if not ModuloEducacional:
+        return
 
-    # Check if modules already exist
-    if ModuloEducacional.objects.filter(codigo__startswith='TEST_M').exists():
-        print("[PEP+ Seed] Test modules already exist, skipping...")
+    try:
+        # Check if modules already exist
+        if ModuloEducacional.objects.filter(codigo__startswith='TEST_M').exists():
+            print("[PEP+ Seed] Test modules already exist, skipping...")
+            return
+    except Exception as e:
+        print(f"[PEP+ Seed] Cannot access ModuloEducacional table yet: {e}")
         return
 
     print("[PEP+ Seed] Creating educational modules...")
@@ -132,18 +173,20 @@ def seed_modulos_educacionais(apps, schema_editor):
         {'codigo': 'TEST_M05', 'nome': 'Módulo 5: Conversar e Aprender', 'ordem': 5, 'duracao_semanas': 4},
     ]
 
-    for modulo_data in modulos:
-        ModuloEducacional.objects.create(
-            uuid=uuid.uuid4(),
-            codigo=modulo_data['codigo'],
-            nome=modulo_data['nome'],
-            descricao=f"Descrição do {modulo_data['nome']}",
-            ordem=modulo_data['ordem'],
-            duracao_semanas=modulo_data['duracao_semanas'],
-            ativo=True,
-        )
-
-    print(f"[PEP+ Seed] Created {len(modulos)} educational modules")
+    try:
+        for modulo_data in modulos:
+            ModuloEducacional.objects.create(
+                uuid=uuid.uuid4(),
+                codigo=modulo_data['codigo'],
+                nome=modulo_data['nome'],
+                descricao=f"Descrição do {modulo_data['nome']}",
+                ordem=modulo_data['ordem'],
+                duracao_semanas=modulo_data['duracao_semanas'],
+                ativo=True,
+            )
+        print(f"[PEP+ Seed] Created {len(modulos)} educational modules")
+    except Exception as e:
+        print(f"[PEP+ Seed] Failed to create educational modules: {e}")
 
 
 def seed_grupos_familiares(apps, schema_editor):
