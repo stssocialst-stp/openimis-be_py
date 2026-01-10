@@ -62,9 +62,9 @@ def validate_sessao_planeamento(data):
         })
 
     # Módulo obrigatório
-    if not data.get('modulo_id'):
+    if not data.get('nome_modulo'):
         errors.append({
-            'field': 'modulo_id',
+            'field': 'nome_modulo',
             'message': 'Nome do módulo é obrigatório'
         })
 
@@ -179,12 +179,46 @@ def validate_execucao_sessao(data):
             'message': 'Formador é obrigatório'
         })
 
-    # Número de participantes que praticaram compromissos
-    if data.get('numero_participantes_compromissos') is None:
-        errors.append({
-            'field': 'numero_participantes_compromissos',
-            'message': 'Número de participantes que praticaram compromissos é obrigatório'
-        })
+    # Validar numero_cuidadores se fornecido
+    if data.get('numero_cuidadores'):
+        opcoes_validas = ['0', '1-5', '6-10', '15+']
+        if data.get('numero_cuidadores') not in opcoes_validas:
+            errors.append({
+                'field': 'numero_cuidadores',
+                'message': f'Número de cuidadores deve ser um de: {", ".join(opcoes_validas)}'
+            })
+
+    # Validar auto_avaliacao_pontos_fortes structure
+    if data.get('auto_avaliacao_pontos_fortes'):
+        pontos_fortes = data.get('auto_avaliacao_pontos_fortes')
+        if isinstance(pontos_fortes, list):
+            for idx, item in enumerate(pontos_fortes):
+                if not isinstance(item, dict):
+                    errors.append({
+                        'field': 'auto_avaliacao_pontos_fortes',
+                        'message': f'Item {idx} deve ser um objeto com {{ descricao, confirmacao }}'
+                    })
+                elif 'descricao' not in item or 'confirmacao' not in item:
+                    errors.append({
+                        'field': 'auto_avaliacao_pontos_fortes',
+                        'message': f'Item {idx} deve conter "descricao" e "confirmacao"'
+                    })
+
+    # Validar auto_avaliacao_pontos_atencao structure
+    if data.get('auto_avaliacao_pontos_atencao'):
+        pontos_atencao = data.get('auto_avaliacao_pontos_atencao')
+        if isinstance(pontos_atencao, list):
+            for idx, item in enumerate(pontos_atencao):
+                if not isinstance(item, dict):
+                    errors.append({
+                        'field': 'auto_avaliacao_pontos_atencao',
+                        'message': f'Item {idx} deve ser um objeto com {{ descricao, confirmacao }}'
+                    })
+                elif 'descricao' not in item or 'confirmacao' not in item:
+                    errors.append({
+                        'field': 'auto_avaliacao_pontos_atencao',
+                        'message': f'Item {idx} deve conter "descricao" e "confirmacao"'
+                    })
 
     return errors
 
@@ -229,6 +263,47 @@ def validate_supervisao_sessao(data):
             'field': 'identificador_grupo',
             'message': 'Identificador do grupo é obrigatório'
         })
+
+    # Validar numero_participantes se fornecido
+    if data.get('numero_participantes'):
+        opcoes_validas = ['0', '1-5', '6-10', '15+']
+        if data.get('numero_participantes') not in opcoes_validas:
+            errors.append({
+                'field': 'numero_participantes',
+                'message': f'Número de participantes deve ser um de: {", ".join(opcoes_validas)}'
+            })
+
+    # Validar auto_avaliacao_pontos_fortes structure
+    if data.get('auto_avaliacao_pontos_fortes'):
+        pontos_fortes = data.get('auto_avaliacao_pontos_fortes')
+        if isinstance(pontos_fortes, list):
+            for idx, item in enumerate(pontos_fortes):
+                if not isinstance(item, dict):
+                    errors.append({
+                        'field': 'auto_avaliacao_pontos_fortes',
+                        'message': f'Item {idx} deve ser um objeto com {{ descricao, confirmacao }}'
+                    })
+                elif 'descricao' not in item or 'confirmacao' not in item:
+                    errors.append({
+                        'field': 'auto_avaliacao_pontos_fortes',
+                        'message': f'Item {idx} deve conter "descricao" e "confirmacao"'
+                    })
+
+    # Validar auto_avaliacao_pontos_atencao structure
+    if data.get('auto_avaliacao_pontos_atencao'):
+        pontos_atencao = data.get('auto_avaliacao_pontos_atencao')
+        if isinstance(pontos_atencao, list):
+            for idx, item in enumerate(pontos_atencao):
+                if not isinstance(item, dict):
+                    errors.append({
+                        'field': 'auto_avaliacao_pontos_atencao',
+                        'message': f'Item {idx} deve ser um objeto com {{ descricao, confirmacao }}'
+                    })
+                elif 'descricao' not in item or 'confirmacao' not in item:
+                    errors.append({
+                        'field': 'auto_avaliacao_pontos_atencao',
+                        'message': f'Item {idx} deve conter "descricao" e "confirmacao"'
+                    })
 
     return errors
 

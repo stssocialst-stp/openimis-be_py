@@ -51,17 +51,18 @@ class PresencaSessaoAdmin(admin.ModelAdmin):
 
 @admin.register(ExecucaoSessao)
 class ExecucaoSessaoAdmin(admin.ModelAdmin):
-    list_display = ('sessao', 'formador', 'data_execucao', 'localidade', 'necessita_encaminhamento')
-    list_filter = ('necessita_encaminhamento', 'data_execucao')
-    search_fields = ('formador__username',)
+    list_display = ('sessao', 'formador', 'numero_cuidadores', 'data_execucao', 'localidade', 'necessita_encaminhamento')
+    list_filter = ('necessita_encaminhamento', 'numero_cuidadores', 'data_execucao')
+    search_fields = ('formador__username', 'sessao__codigo_sessao')
     date_hierarchy = 'data_execucao'
     ordering = ('-data_execucao',)
+    readonly_fields = ('data_execucao',)
 
 
 @admin.register(SupervisaoSessao)
 class SupervisaoSessaoAdmin(admin.ModelAdmin):
-    list_display = ('sessao', 'supervisor', 'formador', 'data_supervisao', 'identificador_grupo')
-    list_filter = ('data_supervisao',)
+    list_display = ('sessao', 'supervisor', 'formador', 'localidade', 'numero_participantes', 'necessita_encaminhamento', 'data_supervisao')
+    list_filter = ('necessita_encaminhamento', 'numero_participantes', 'data_supervisao')
     search_fields = ('supervisor__username', 'formador__username', 'identificador_grupo')
     date_hierarchy = 'data_supervisao'
     ordering = ('-data_supervisao',)
@@ -88,14 +89,14 @@ class EncaminhamentoSessaoAdmin(admin.ModelAdmin):
 class RoteiroReuniaoBimestralAdmin(admin.ModelAdmin):
     list_display = ('data_reuniao', 'coordenador_nacional', 'horario', 'data_proxima_reuniao')
     list_filter = ('data_reuniao', 'coordenador_nacional')
-    search_fields = ('coordenador_nacional', 'participantes')
+    search_fields = ('coordenador_nacional__username', 'principais_desafios', 'oportunidades_melhoria')
     date_hierarchy = 'data_reuniao'
     ordering = ('-data_reuniao',)
 
 
 @admin.register(RelatorioSupervisaoBimestral)
 class RelatorioSupervisaoBimestralAdmin(admin.ModelAdmin):
-    list_display = ('distrito', 'periodo', 'ano', 'num_sessoes_supervisionadas', 'num_tecnicos_supervisionados', 'periodo_inicio', 'periodo_fim')
+    list_display = ('distrito', 'periodo', 'ano', 'numero_sessoes', 'numero_tecnicos_formadores')
     list_filter = ('periodo', 'ano', 'distrito')
-    search_fields = ('nome_supervisores', 'distrito__name')
+    search_fields = ('distrito__name', 'observacoes')
     ordering = ('-ano', '-periodo')

@@ -2,6 +2,7 @@
 PEP+ Services
 Business logic for CRUD operations
 """
+import json
 from django.db import transaction
 from django.core.exceptions import ValidationError, PermissionDenied
 from core.services import BaseService
@@ -16,6 +17,36 @@ from .validations import (
     validate_relatorio_distrital, validate_encaminhamento,
     validate_modulo_educacional, validate_grupo_familiar
 )
+
+
+def parse_json_field(value, default=None):
+    """
+    Parse JSON field that might come as string or already parsed object.
+
+    Args:
+        value: The value to parse (string, list, dict, or None)
+        default: Default value if parsing fails or value is None
+
+    Returns:
+        Parsed value or default
+    """
+    if value is None:
+        return default if default is not None else []
+
+    # If already parsed (list or dict), return as is
+    if isinstance(value, (list, dict)):
+        return value
+
+    # If string, try to parse JSON
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, ValueError):
+            # If parse fails, return default
+            return default if default is not None else []
+
+    # Unknown type, return default
+    return default if default is not None else []
 
 
 class ModuloEducacionalService(BaseService):
@@ -275,10 +306,11 @@ class SessaoPEPService(BaseService):
 
                 sessao = SessaoPEP.objects.create(
                     codigo_sessao=session_data['codigo_sessao'],
+                    data_planejamento=session_data['data_planejamento'],
                     coordenador_distrital_id=session_data['coordenador_distrital_id'],
                     tecnico_social_id=session_data['tecnico_social_id'],
                     distrito_id=session_data['distrito_id'],
-                    modulo_id=session_data['modulo_id'],
+                    nome_modulo=session_data['nome_modulo'],
                     mes_modulo_anterior=session_data.get('mes_modulo_anterior'),
                     dia_semana=session_data['dia_semana'],
                     data_sessao=session_data['data_sessao'],
@@ -292,6 +324,67 @@ class SessaoPEPService(BaseService):
                     observacoes=session_data.get('observacoes'),
                     status=session_data.get('status', 'PLAN')
                 )
+                sessao.audit_user_id = user.id_for_audit
+                sessao.save()
+                sessoes.append(sessao)
+
+            return sessoes
+
+    @classmethod
+    def update_multiple(cls, sessions_list, user):
+        """Update multiple PEP sessions at once"""
+        # Check permissions
+        if not user.has_perms(['pep_plus.change_sessaopep']):
+            raise PermissionDenied("User does not have permission to update PEP sessions")
+
+        with transaction.atomic():
+            sessoes = []
+            for session_data in sessions_list:
+                sessao_id = session_data.pop('id')
+
+                try:
+                    sessao = SessaoPEP.objects.get(id=sessao_id, validity_to__isnull=True)
+                except SessaoPEP.DoesNotExist:
+                    raise ValidationError([{'message': f'Session with id {sessao_id} not found'}])
+
+                # Update only provided fields
+                if 'codigo_sessao' in session_data:
+                    sessao.codigo_sessao = session_data['codigo_sessao']
+                if 'data_planejamento' in session_data:
+                    sessao.data_planejamento = session_data['data_planejamento']
+                if 'coordenador_distrital_id' in session_data:
+                    sessao.coordenador_distrital_id = session_data['coordenador_distrital_id']
+                if 'tecnico_social_id' in session_data:
+                    sessao.tecnico_social_id = session_data['tecnico_social_id']
+                if 'distrito_id' in session_data:
+                    sessao.distrito_id = session_data['distrito_id']
+                if 'nome_modulo' in session_data:
+                    sessao.nome_modulo = session_data['nome_modulo']
+                if 'mes_modulo_anterior' in session_data:
+                    sessao.mes_modulo_anterior = session_data['mes_modulo_anterior']
+                if 'dia_semana' in session_data:
+                    sessao.dia_semana = session_data['dia_semana']
+                if 'data_sessao' in session_data:
+                    sessao.data_sessao = session_data['data_sessao']
+                if 'hora_sessao' in session_data:
+                    sessao.hora_sessao = session_data['hora_sessao']
+                if 'zona' in session_data:
+                    sessao.zona = session_data['zona']
+                if 'numero_familias' in session_data:
+                    sessao.numero_familias = session_data['numero_familias']
+                if 'grupo_familia_id' in session_data:
+                    sessao.grupo_familia_id = session_data['grupo_familia_id']
+                if 'tempo_deslocamento' in session_data:
+                    sessao.tempo_deslocamento = session_data['tempo_deslocamento']
+                if 'feedback_documentacao' in session_data:
+                    sessao.feedback_documentacao = session_data['feedback_documentacao']
+                if 'tem_supervisao' in session_data:
+                    sessao.tem_supervisao = session_data['tem_supervisao']
+                if 'observacoes' in session_data:
+                    sessao.observacoes = session_data['observacoes']
+                if 'status' in session_data:
+                    sessao.status = session_data['status']
+
                 sessao.audit_user_id = user.id_for_audit
                 sessao.save()
                 sessoes.append(sessao)
@@ -320,10 +413,11 @@ class PresencaSessaoService(BaseService):
             presenca = PresencaSessao.objects.create(
                 sessao_id=data['sessao_id'],
                 familia_id=data['familia_id'],
-                nome_familia=data['nome_familia'],
+                nome_familia=data.get('nome_familia'),
                 grupo_id=data.get('grupo_id'),
                 estado=data.get('estado', 'PRES'),
                 codigo_encaminhamento=data.get('codigo_encaminhamento'),
+                nome_instituicao=data.get('nome_instituicao'),
                 observacoes=data.get('observacoes')
             )
             presenca.audit_user_id = user.id_for_audit
@@ -345,6 +439,7 @@ class PresencaSessaoService(BaseService):
         with transaction.atomic():
             presenca.estado = data.get('estado', presenca.estado)
             presenca.codigo_encaminhamento = data.get('codigo_encaminhamento', presenca.codigo_encaminhamento)
+            presenca.nome_instituicao = data.get('nome_instituicao', presenca.nome_instituicao)
             presenca.observacoes = data.get('observacoes', presenca.observacoes)
             presenca.audit_user_id = user.id_for_audit
             presenca.save()
@@ -387,10 +482,11 @@ class PresencaSessaoService(BaseService):
                 presenca = PresencaSessao.objects.create(
                     sessao_id=sessao_id,
                     familia_id=familia_data['familia_id'],
-                    nome_familia=familia_data['nome_familia'],
+                    nome_familia=familia_data.get('nome_familia'),
                     grupo_id=familia_data.get('grupo_id'),
                     estado=familia_data.get('estado', 'PRES'),
                     codigo_encaminhamento=familia_data.get('codigo_encaminhamento'),
+                    nome_instituicao=familia_data.get('nome_instituicao'),
                     observacoes=familia_data.get('observacoes')
                 )
                 presenca.audit_user_id = user.id_for_audit
@@ -398,6 +494,79 @@ class PresencaSessaoService(BaseService):
                 presencas.append(presenca)
 
             return presencas
+
+    @classmethod
+    def registrar_presencas_batch(cls, data, user):
+        """Batch register attendance with session execution details (Ferramenta 2)"""
+        from .models import SessaoPEP, ExecucaoSessao
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.add_presencasessao']):
+            raise PermissionDenied("User does not have permission to create attendance records")
+
+        # Validate session exists
+        try:
+            sessao = SessaoPEP.objects.get(id=data['sessao_id'], validity_to__isnull=True)
+        except SessaoPEP.DoesNotExist:
+            raise ValidationError([{'message': 'Session not found'}])
+
+        # Validate session details match
+        if sessao.distrito_id != data['distrito_id']:
+            raise ValidationError([{'message': 'District ID does not match session district'}])
+        if sessao.grupo_familia_id != data['grupo_familia_id']:
+            raise ValidationError([{'message': 'Family group ID does not match session family group'}])
+
+        with transaction.atomic():
+            # Update SessaoPEP with actual execution data
+            sessao.data_sessao = data['data_sessao']
+            sessao.nome_modulo = data['nome_modulo']
+            if 'mes_modulo_anterior' in data:
+                sessao.mes_modulo_anterior = data['mes_modulo_anterior']
+            sessao.audit_user_id = user.id_for_audit
+            sessao.save()
+
+            # Create or update ExecucaoSessao with session details
+            execucao, created = ExecucaoSessao.objects.update_or_create(
+                sessao=sessao,
+                defaults={
+                    'formador_id': data['formador_id'],
+                    'localidade_id': data.get('localidade_id'),
+                    'data_execucao': data['data_sessao']
+                }
+            )
+            if created:
+                execucao.audit_user_id = user.id_for_audit
+                execucao.save()
+
+            # Register all family attendances
+            presencas = []
+            for presenca_item in data['presencas']:
+                # Delete existing attendance for this family if exists
+                PresencaSessao.objects.filter(
+                    sessao=sessao,
+                    familia_id=presenca_item['familia_id'],
+                    validity_to__isnull=True
+                ).delete()
+
+                # Create new attendance
+                presenca = PresencaSessao.objects.create(
+                    sessao=sessao,
+                    familia_id=presenca_item['familia_id'],
+                    nome_familia=presenca_item.get('nome_familia'),
+                    grupo_id=sessao.grupo_familia_id,  # Get from session
+                    estado=presenca_item['estado'],
+                    codigo_encaminhamento=presenca_item.get('codigo_encaminhamento'),
+                    nome_instituicao=presenca_item.get('nome_instituicao'),
+                    observacoes=presenca_item.get('observacoes')
+                )
+                presenca.audit_user_id = user.id_for_audit
+                presenca.save()
+                presencas.append(presenca)
+
+            return {
+                'execucao': execucao,
+                'presencas': presencas
+            }
 
 
 class ExecucaoSessaoService(BaseService):
@@ -423,13 +592,15 @@ class ExecucaoSessaoService(BaseService):
                 formador_id=data['formador_id'],
                 supervisor_id=data.get('supervisor_id'),
                 localidade_id=data.get('localidade_id'),
-                numero_participantes_compromissos=data.get('numero_participantes_compromissos', 0),
-                praticas_positivas=data.get('praticas_positivas', []),
-                desafios_transmissao=data.get('desafios_transmissao', []),
+                numero_cuidadores=data.get('numero_cuidadores', '0'),
+                praticas_positivas=parse_json_field(data.get('praticas_positivas'), []),
+                outras_praticas_positivas=data.get('outras_praticas_positivas'),
+                desafios_transmissao=parse_json_field(data.get('desafios_transmissao'), []),
+                outros_desafios=data.get('outros_desafios'),
                 necessita_encaminhamento=data.get('necessita_encaminhamento', False),
-                auto_avaliacao_pontos_fortes=data.get('auto_avaliacao_pontos_fortes', []),
-                auto_avaliacao_pontos_atencao=data.get('auto_avaliacao_pontos_atencao', []),
-                avaliacao_metodologia=data.get('avaliacao_metodologia', {}),
+                auto_avaliacao_pontos_fortes=parse_json_field(data.get('auto_avaliacao_pontos_fortes'), []),
+                auto_avaliacao_pontos_atencao=parse_json_field(data.get('auto_avaliacao_pontos_atencao'), []),
+                avaliacao_metodologia=parse_json_field(data.get('avaliacao_metodologia'), {}),
                 observacoes=data.get('observacoes')
             )
             execucao.audit_user_id = user.id_for_audit
@@ -455,17 +626,24 @@ class ExecucaoSessaoService(BaseService):
             raise PermissionDenied("User does not have permission to update execution records")
 
         with transaction.atomic():
-            execucao.numero_participantes_compromissos = data.get('numero_participantes_compromissos',
-                                                                   execucao.numero_participantes_compromissos)
-            execucao.praticas_positivas = data.get('praticas_positivas', execucao.praticas_positivas)
-            execucao.desafios_transmissao = data.get('desafios_transmissao', execucao.desafios_transmissao)
+            execucao.numero_cuidadores = data.get('numero_cuidadores', execucao.numero_cuidadores)
+            if 'praticas_positivas' in data:
+                execucao.praticas_positivas = parse_json_field(data['praticas_positivas'], execucao.praticas_positivas)
+            execucao.outras_praticas_positivas = data.get('outras_praticas_positivas',
+                                                          execucao.outras_praticas_positivas)
+            if 'desafios_transmissao' in data:
+                execucao.desafios_transmissao = parse_json_field(data['desafios_transmissao'], execucao.desafios_transmissao)
+            execucao.outros_desafios = data.get('outros_desafios', execucao.outros_desafios)
             execucao.necessita_encaminhamento = data.get('necessita_encaminhamento',
                                                          execucao.necessita_encaminhamento)
-            execucao.auto_avaliacao_pontos_fortes = data.get('auto_avaliacao_pontos_fortes',
-                                                            execucao.auto_avaliacao_pontos_fortes)
-            execucao.auto_avaliacao_pontos_atencao = data.get('auto_avaliacao_pontos_atencao',
-                                                             execucao.auto_avaliacao_pontos_atencao)
-            execucao.avaliacao_metodologia = data.get('avaliacao_metodologia', execucao.avaliacao_metodologia)
+            if 'auto_avaliacao_pontos_fortes' in data:
+                execucao.auto_avaliacao_pontos_fortes = parse_json_field(data['auto_avaliacao_pontos_fortes'],
+                                                                         execucao.auto_avaliacao_pontos_fortes)
+            if 'auto_avaliacao_pontos_atencao' in data:
+                execucao.auto_avaliacao_pontos_atencao = parse_json_field(data['auto_avaliacao_pontos_atencao'],
+                                                                          execucao.auto_avaliacao_pontos_atencao)
+            if 'avaliacao_metodologia' in data:
+                execucao.avaliacao_metodologia = parse_json_field(data['avaliacao_metodologia'], execucao.avaliacao_metodologia)
             execucao.observacoes = data.get('observacoes', execucao.observacoes)
             execucao.audit_user_id = user.id_for_audit
             execucao.save()
@@ -494,12 +672,22 @@ class SupervisaoSessaoService(BaseService):
                 sessao_id=data['sessao_id'],
                 supervisor_id=data['supervisor_id'],
                 formador_id=data['formador_id'],
+                localidade_id=data.get('localidade_id'),
+                grupo_id=data.get('grupo_id'),
                 data_supervisao=data['data_supervisao'],
                 data_modulo_anterior=data.get('data_modulo_anterior'),
                 identificador_grupo=data['identificador_grupo'],
-                perguntas_avaliacao=data.get('perguntas_avaliacao', {}),
-                pontos_positivos=data.get('pontos_positivos'),
-                pontos_melhorar=data.get('pontos_melhorar'),
+                numero_participantes=data.get('numero_participantes', '0'),
+                praticas_positivas_estrategias=parse_json_field(data.get('praticas_positivas_estrategias'), []),
+                desafios_transmissao=parse_json_field(data.get('desafios_transmissao'), []),
+                necessita_encaminhamento=data.get('necessita_encaminhamento', False),
+                auto_avaliacao_pontos_fortes=parse_json_field(data.get('auto_avaliacao_pontos_fortes'), []),
+                auto_avaliacao_pontos_atencao=parse_json_field(data.get('auto_avaliacao_pontos_atencao'), []),
+                avaliacao_execucao_metodologia=parse_json_field(data.get('avaliacao_execucao_metodologia'), []),
+                metodologia_passos=parse_json_field(data.get('metodologia_passos'), []),
+                feedback_pontos_fortes=data.get('feedback_pontos_fortes'),
+                feedback_desafios=data.get('feedback_desafios'),
+                compromisso_formador=data.get('compromisso_formador'),
                 observacoes=data.get('observacoes')
             )
             supervisao.audit_user_id = user.id_for_audit
@@ -519,9 +707,28 @@ class SupervisaoSessaoService(BaseService):
             raise PermissionDenied("User does not have permission to update supervision records")
 
         with transaction.atomic():
-            supervisao.perguntas_avaliacao = data.get('perguntas_avaliacao', supervisao.perguntas_avaliacao)
-            supervisao.pontos_positivos = data.get('pontos_positivos', supervisao.pontos_positivos)
-            supervisao.pontos_melhorar = data.get('pontos_melhorar', supervisao.pontos_melhorar)
+            supervisao.numero_participantes = data.get('numero_participantes', supervisao.numero_participantes)
+            if 'praticas_positivas_estrategias' in data:
+                supervisao.praticas_positivas_estrategias = parse_json_field(data['praticas_positivas_estrategias'],
+                                                                             supervisao.praticas_positivas_estrategias)
+            if 'desafios_transmissao' in data:
+                supervisao.desafios_transmissao = parse_json_field(data['desafios_transmissao'], supervisao.desafios_transmissao)
+            supervisao.necessita_encaminhamento = data.get('necessita_encaminhamento',
+                                                           supervisao.necessita_encaminhamento)
+            if 'auto_avaliacao_pontos_fortes' in data:
+                supervisao.auto_avaliacao_pontos_fortes = parse_json_field(data['auto_avaliacao_pontos_fortes'],
+                                                                           supervisao.auto_avaliacao_pontos_fortes)
+            if 'auto_avaliacao_pontos_atencao' in data:
+                supervisao.auto_avaliacao_pontos_atencao = parse_json_field(data['auto_avaliacao_pontos_atencao'],
+                                                                            supervisao.auto_avaliacao_pontos_atencao)
+            if 'avaliacao_execucao_metodologia' in data:
+                supervisao.avaliacao_execucao_metodologia = parse_json_field(data['avaliacao_execucao_metodologia'],
+                                                                              supervisao.avaliacao_execucao_metodologia)
+            if 'metodologia_passos' in data:
+                supervisao.metodologia_passos = parse_json_field(data['metodologia_passos'], supervisao.metodologia_passos)
+            supervisao.feedback_pontos_fortes = data.get('feedback_pontos_fortes', supervisao.feedback_pontos_fortes)
+            supervisao.feedback_desafios = data.get('feedback_desafios', supervisao.feedback_desafios)
+            supervisao.compromisso_formador = data.get('compromisso_formador', supervisao.compromisso_formador)
             supervisao.observacoes = data.get('observacoes', supervisao.observacoes)
             supervisao.audit_user_id = user.id_for_audit
             supervisao.save()
@@ -580,6 +787,77 @@ class RelatorioDistritalService(BaseService):
             )
             relatorio.audit_user_id = user.id_for_audit
             relatorio.save()
+            return relatorio
+
+    @classmethod
+    def update(cls, relatorio_id, data, user):
+        """Update a district report"""
+        try:
+            relatorio = RelatorioDistritalBimestral.objects.get(id=relatorio_id, validity_to__isnull=True)
+        except RelatorioDistritalBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'District report not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.change_relatoriodistritalbimestral']):
+            raise PermissionDenied("User does not have permission to update district reports")
+
+        with transaction.atomic():
+            # Update statistics
+            if 'numero_localidades_atendidas' in data:
+                relatorio.numero_localidades_atendidas = data['numero_localidades_atendidas']
+            if 'numero_familias_atendidas' in data:
+                relatorio.numero_familias_atendidas = data['numero_familias_atendidas']
+            if 'numero_tecnicos_formadores' in data:
+                relatorio.numero_tecnicos_formadores = data['numero_tecnicos_formadores']
+            if 'numero_sessoes_conduzidas' in data:
+                relatorio.numero_sessoes_conduzidas = data['numero_sessoes_conduzidas']
+            if 'numero_sessoes_esperadas' in data:
+                relatorio.numero_sessoes_esperadas = data['numero_sessoes_esperadas']
+            if 'numero_familias_presentes' in data:
+                relatorio.numero_familias_presentes = data['numero_familias_presentes']
+            if 'numero_familias_esperadas' in data:
+                relatorio.numero_familias_esperadas = data['numero_familias_esperadas']
+            if 'numero_familias_migraram' in data:
+                relatorio.numero_familias_migraram = data['numero_familias_migraram']
+            if 'numero_sessoes_perdidas' in data:
+                relatorio.numero_sessoes_perdidas = data['numero_sessoes_perdidas']
+
+            # Update calculated percentages
+            if 'percentual_sessoes' in data:
+                relatorio.percentual_sessoes = data['percentual_sessoes']
+            if 'percentual_familias' in data:
+                relatorio.percentual_familias = data['percentual_familias']
+            if 'media_familia_presente' in data:
+                relatorio.media_familia_presente = data['media_familia_presente']
+            if 'media_familia_esperada' in data:
+                relatorio.media_familia_esperada = data['media_familia_esperada']
+
+            # Update detailed data
+            if 'dados_tecnicos' in data:
+                relatorio.dados_tecnicos = data['dados_tecnicos']
+            if 'dados_encaminhamentos' in data:
+                relatorio.dados_encaminhamentos = data['dados_encaminhamentos']
+            if 'observacoes' in data:
+                relatorio.observacoes = data['observacoes']
+
+            relatorio.audit_user_id = user.id_for_audit
+            relatorio.save()
+            return relatorio
+
+    @classmethod
+    def delete(cls, relatorio_id, user):
+        """Delete (soft delete) a district report"""
+        try:
+            relatorio = RelatorioDistritalBimestral.objects.get(id=relatorio_id, validity_to__isnull=True)
+        except RelatorioDistritalBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'District report not found'}])
+
+        # Check permissions
+        if not user.has_perms(['pep_plus.delete_relatoriodistritalbimestral']):
+            raise PermissionDenied("User does not have permission to delete district reports")
+
+        with transaction.atomic():
+            relatorio.delete_history()
             return relatorio
 
 
@@ -641,7 +919,7 @@ class EncaminhamentoService(BaseService):
 
 
 class RoteiroReuniaoService(BaseService):
-    """Service for Bimonthly Meeting Agenda operations"""
+    """Service for Bimonthly Meeting Agenda operations (Ferramenta 6)"""
 
     @classmethod
     def create(cls, data, user):
@@ -654,15 +932,15 @@ class RoteiroReuniaoService(BaseService):
             roteiro = RoteiroReuniaoBimestral.objects.create(
                 data_reuniao=data['data_reuniao'],
                 horario=data['horario'],
-                coordenador_nacional=data['coordenador_nacional'],
-                participantes=data['participantes'],
-                resumo_agenda=data.get('resumo_agenda', []),
-                desafios_solucoes=data['desafios_solucoes'],
-                oportunidades_praticas=data['oportunidades_praticas'],
-                analise_dados_tendencias=data['analise_dados_tendencias'],
-                acoes_definidas=data['acoes_definidas'],
-                data_proxima_reuniao=data.get('data_proxima_reuniao'),
-                observacoes_proxima_reuniao=data.get('observacoes_proxima_reuniao')
+                coordenador_nacional_id=data['coordenador_nacional_id'],
+                participantes=parse_json_field(data.get('participantes'), []),
+                resumo_da_agenda=parse_json_field(data.get('resumo_da_agenda'), []),
+                principais_desafios=data.get('principais_desafios'),
+                oportunidades_melhoria=data.get('oportunidades_melhoria'),
+                apreciacao_relatorios=data.get('apreciacao_relatorios'),
+                plano_acao=data.get('plano_acao'),
+                proxima_reuniao=data.get('proxima_reuniao'),
+                data_proxima_reuniao=data.get('data_proxima_reuniao')
             )
             roteiro.audit_user_id = user.id_for_audit
             roteiro.save()
@@ -686,24 +964,24 @@ class RoteiroReuniaoService(BaseService):
                 roteiro.data_reuniao = data['data_reuniao']
             if 'horario' in data:
                 roteiro.horario = data['horario']
-            if 'coordenador_nacional' in data:
-                roteiro.coordenador_nacional = data['coordenador_nacional']
+            if 'coordenador_nacional_id' in data:
+                roteiro.coordenador_nacional_id = data['coordenador_nacional_id']
             if 'participantes' in data:
-                roteiro.participantes = data['participantes']
-            if 'resumo_agenda' in data:
-                roteiro.resumo_agenda = data['resumo_agenda']
-            if 'desafios_solucoes' in data:
-                roteiro.desafios_solucoes = data['desafios_solucoes']
-            if 'oportunidades_praticas' in data:
-                roteiro.oportunidades_praticas = data['oportunidades_praticas']
-            if 'analise_dados_tendencias' in data:
-                roteiro.analise_dados_tendencias = data['analise_dados_tendencias']
-            if 'acoes_definidas' in data:
-                roteiro.acoes_definidas = data['acoes_definidas']
+                roteiro.participantes = parse_json_field(data['participantes'], roteiro.participantes)
+            if 'resumo_da_agenda' in data:
+                roteiro.resumo_da_agenda = parse_json_field(data['resumo_da_agenda'], roteiro.resumo_da_agenda)
+            if 'principais_desafios' in data:
+                roteiro.principais_desafios = data['principais_desafios']
+            if 'oportunidades_melhoria' in data:
+                roteiro.oportunidades_melhoria = data['oportunidades_melhoria']
+            if 'apreciacao_relatorios' in data:
+                roteiro.apreciacao_relatorios = data['apreciacao_relatorios']
+            if 'plano_acao' in data:
+                roteiro.plano_acao = data['plano_acao']
+            if 'proxima_reuniao' in data:
+                roteiro.proxima_reuniao = data['proxima_reuniao']
             if 'data_proxima_reuniao' in data:
                 roteiro.data_proxima_reuniao = data['data_proxima_reuniao']
-            if 'observacoes_proxima_reuniao' in data:
-                roteiro.observacoes_proxima_reuniao = data['observacoes_proxima_reuniao']
 
             roteiro.audit_user_id = user.id_for_audit
             roteiro.save()
@@ -734,7 +1012,7 @@ class RelatorioSupervisaoService(BaseService):
 
     @classmethod
     def create(cls, data, user):
-        """Create a new bimonthly supervision report"""
+        """Create a new bimonthly supervision report (Ferramenta 7)"""
         from .models import RelatorioSupervisaoBimestral
 
         # Check permissions
@@ -743,18 +1021,16 @@ class RelatorioSupervisaoService(BaseService):
 
         with transaction.atomic():
             relatorio = RelatorioSupervisaoBimestral.objects.create(
-                nome_supervisores=data['nome_supervisores'],
-                num_sessoes_supervisionadas=data['num_sessoes_supervisionadas'],
-                num_tecnicos_supervisionados=data['num_tecnicos_supervisionados'],
+                supervisores=parse_json_field(data.get('supervisores'), []),
+                numero_sessoes=data['numero_sessoes'],
+                numero_tecnicos_formadores=data['numero_tecnicos_formadores'],
                 distrito_id=data['distrito_id'],
                 periodo=data['periodo'],
                 ano=data['ano'],
-                periodo_inicio=data['periodo_inicio'],
-                periodo_fim=data['periodo_fim'],
-                avaliacoes_tecnicos=data.get('avaliacoes_tecnicos', []),
-                notas_sessoes_pep=data.get('notas_sessoes_pep', {}),
-                modulo_maior_dificuldade_id=data.get('modulo_maior_dificuldade_id'),
-                observacoes_adicionais=data.get('observacoes_adicionais')
+                avaliacoes_tecnicos=parse_json_field(data.get('avaliacoes_tecnicos'), []),
+                sessoes_pep=parse_json_field(data.get('sessoes_pep'), []),
+                modulos_dificuldade=parse_json_field(data.get('modulos_dificuldade'), []),
+                observacoes=data.get('observacoes')
             )
             relatorio.audit_user_id = user.id_for_audit
             relatorio.save()
@@ -762,7 +1038,7 @@ class RelatorioSupervisaoService(BaseService):
 
     @classmethod
     def update(cls, data, user):
-        """Update an existing bimonthly supervision report"""
+        """Update an existing bimonthly supervision report (Ferramenta 7)"""
         from .models import RelatorioSupervisaoBimestral
 
         try:
@@ -776,30 +1052,26 @@ class RelatorioSupervisaoService(BaseService):
 
         with transaction.atomic():
             # Update fields if provided
-            if 'nome_supervisores' in data:
-                relatorio.nome_supervisores = data['nome_supervisores']
-            if 'num_sessoes_supervisionadas' in data:
-                relatorio.num_sessoes_supervisionadas = data['num_sessoes_supervisionadas']
-            if 'num_tecnicos_supervisionados' in data:
-                relatorio.num_tecnicos_supervisionados = data['num_tecnicos_supervisionados']
+            if 'supervisores' in data:
+                relatorio.supervisores = parse_json_field(data['supervisores'], relatorio.supervisores)
+            if 'numero_sessoes' in data:
+                relatorio.numero_sessoes = data['numero_sessoes']
+            if 'numero_tecnicos_formadores' in data:
+                relatorio.numero_tecnicos_formadores = data['numero_tecnicos_formadores']
             if 'distrito_id' in data:
                 relatorio.distrito_id = data['distrito_id']
             if 'periodo' in data:
                 relatorio.periodo = data['periodo']
             if 'ano' in data:
                 relatorio.ano = data['ano']
-            if 'periodo_inicio' in data:
-                relatorio.periodo_inicio = data['periodo_inicio']
-            if 'periodo_fim' in data:
-                relatorio.periodo_fim = data['periodo_fim']
             if 'avaliacoes_tecnicos' in data:
-                relatorio.avaliacoes_tecnicos = data['avaliacoes_tecnicos']
-            if 'notas_sessoes_pep' in data:
-                relatorio.notas_sessoes_pep = data['notas_sessoes_pep']
-            if 'modulo_maior_dificuldade_id' in data:
-                relatorio.modulo_maior_dificuldade_id = data['modulo_maior_dificuldade_id']
-            if 'observacoes_adicionais' in data:
-                relatorio.observacoes_adicionais = data['observacoes_adicionais']
+                relatorio.avaliacoes_tecnicos = parse_json_field(data['avaliacoes_tecnicos'], relatorio.avaliacoes_tecnicos)
+            if 'sessoes_pep' in data:
+                relatorio.sessoes_pep = parse_json_field(data['sessoes_pep'], relatorio.sessoes_pep)
+            if 'modulos_dificuldade' in data:
+                relatorio.modulos_dificuldade = parse_json_field(data['modulos_dificuldade'], relatorio.modulos_dificuldade)
+            if 'observacoes' in data:
+                relatorio.observacoes = data['observacoes']
 
             relatorio.audit_user_id = user.id_for_audit
             relatorio.save()

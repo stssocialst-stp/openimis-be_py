@@ -93,6 +93,8 @@ def convert_ids_in_session_data(session_data):
     """
     id_fields = [
         'coordenador_distrital_id',
+        'coordenador_nacional_id',
+        'tecnico_administrativo_id',
         'tecnico_social_id',
         'distrito_id',
         'modulo_maior_dificuldade_id',
@@ -148,24 +150,24 @@ def convert_uuid_to_id(field_name, uuid_value):
         'formador_id': (User, 'id'),
         'supervisor_id': (User, 'id'),
         'tecnico_responsavel_id': (User, 'id'),
-        'distrito_id': (Location, 'uuid'),
-        'localidade_id': (Location, 'uuid'),
+        'distrito_id': (Location, 'code'),
+        'localidade_id': (Location, 'code'),
         'sessao_id': (SessaoPEP, 'uuid'),
     }
 
     if field_name not in model_mapping:
-        logger.warning(f"[PEP+] Field {field_name} not in mapping, returning UUID as-is")
+        logger.warning(f"[PEP+] Field {field_name} not in mapping, returning value as-is")
         return uuid_value
 
-    model_class, uuid_field = model_mapping[field_name]
-    logger.info(f"[PEP+] Looking up {model_class.__name__} by {uuid_field}={uuid_value}")
+    model_class, lookup_field = model_mapping[field_name]
+    logger.info(f"[PEP+] Looking up {model_class.__name__} by {lookup_field}={uuid_value}")
 
     try:
-        # Look up the object by UUID and get its numeric ID
-        obj = model_class.objects.get(**{uuid_field: uuid_value})
-        logger.info(f"[PEP+] Found object! Converting UUID {uuid_value} to ID {obj.id}")
+        # Look up the object by the specified field and get its numeric ID
+        obj = model_class.objects.get(**{lookup_field: uuid_value})
+        logger.info(f"[PEP+] Found object! Converting {uuid_value} to ID {obj.id}")
         return obj.id
     except Exception as e:
-        # If lookup fails, return the UUID as-is
-        logger.error(f"[PEP+] Failed to convert UUID to ID: {e}")
+        # If lookup fails, return the value as-is
+        logger.error(f"[PEP+] Failed to convert value to ID: {e}")
         return uuid_value
