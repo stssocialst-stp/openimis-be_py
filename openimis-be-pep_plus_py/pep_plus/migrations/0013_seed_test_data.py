@@ -195,18 +195,29 @@ def seed_grupos_familiares(apps, schema_editor):
         print("[PEP+ Seed] Skipping grupos seed - FEED_DATA not set to true")
         return
 
-    GrupoFamiliar = apps.get_model('pep_plus', 'GrupoFamiliar')
-    Location = apps.get_model('location', 'Location')
+    GrupoFamiliar = safe_get_model(apps, 'pep_plus', 'GrupoFamiliar', 'family groups seed')
+    Location = safe_get_model(apps, 'location', 'Location', 'family groups seed')
 
-    # Check if groups already exist
-    if GrupoFamiliar.objects.filter(codigo__startswith='TEST_GF').exists():
-        print("[PEP+ Seed] Test family groups already exist, skipping...")
+    if not GrupoFamiliar or not Location:
+        return
+
+    try:
+        # Check if groups already exist
+        if GrupoFamiliar.objects.filter(codigo__startswith='TEST_GF').exists():
+            print("[PEP+ Seed] Test family groups already exist, skipping...")
+            return
+    except Exception as e:
+        print(f"[PEP+ Seed] Cannot access GrupoFamiliar table yet: {e}")
         return
 
     print("[PEP+ Seed] Creating family groups...")
 
-    distrito = Location.objects.get(code='test_distrito_1')
-    localidade = Location.objects.get(code='test_localidade_1')
+    try:
+        distrito = Location.objects.get(code='test_distrito_1')
+        localidade = Location.objects.get(code='test_localidade_1')
+    except Exception as e:
+        print(f"[PEP+ Seed] Test locations not found, skipping family groups: {e}")
+        return
 
     grupos = [
         {'codigo': 'TEST_GF001', 'nome': 'Grupo Familiar Teste 1', 'numero_familias': 15},
@@ -214,18 +225,20 @@ def seed_grupos_familiares(apps, schema_editor):
         {'codigo': 'TEST_GF003', 'nome': 'Grupo Familiar Teste 3', 'numero_familias': 18},
     ]
 
-    for grupo_data in grupos:
-        GrupoFamiliar.objects.create(
-            uuid=uuid.uuid4(),
-            codigo=grupo_data['codigo'],
-            nome=grupo_data['nome'],
-            distrito=distrito,
-            localidade=localidade,
-            numero_familias=grupo_data['numero_familias'],
-            ativo=True,
-        )
-
-    print(f"[PEP+ Seed] Created {len(grupos)} family groups")
+    try:
+        for grupo_data in grupos:
+            GrupoFamiliar.objects.create(
+                uuid=uuid.uuid4(),
+                codigo=grupo_data['codigo'],
+                nome=grupo_data['nome'],
+                distrito=distrito,
+                localidade=localidade,
+                numero_familias=grupo_data['numero_familias'],
+                ativo=True,
+            )
+        print(f"[PEP+ Seed] Created {len(grupos)} family groups")
+    except Exception as e:
+        print(f"[PEP+ Seed] Failed to create family groups: {e}")
 
 
 def seed_sessoes_pep(apps, schema_editor):

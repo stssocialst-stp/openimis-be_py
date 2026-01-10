@@ -18,9 +18,17 @@ show_help() {
 
 init(){
   # Install PEP+ module if it exists (for development)
-  if [ -d "/openimis-be/openimis-be-pep_plus_py" ]; then
-    echo "Installing PEP+ module..."
-    pip install -e /openimis-be/openimis-be-pep_plus_py
+  # Check both /app (docker-compose mount) and /openimis-be (docker build)
+  PEP_PLUS_PATH=""
+  if [ -d "/app/openimis-be-pep_plus_py" ]; then
+    PEP_PLUS_PATH="/app/openimis-be-pep_plus_py"
+  elif [ -d "/openimis-be/openimis-be-pep_plus_py" ]; then
+    PEP_PLUS_PATH="/openimis-be/openimis-be-pep_plus_py"
+  fi
+
+  if [ -n "$PEP_PLUS_PATH" ]; then
+    echo "Installing PEP+ module from $PEP_PLUS_PATH..."
+    pip install -e "$PEP_PLUS_PATH"
 
     # Add pep_plus to openimis config if not already there
     CONF_FILE="${OPENIMIS_CONF_JSON:-/openimis-be/openimis.json}"
@@ -30,6 +38,8 @@ import json
 import sys
 
 conf_file = "$CONF_FILE"
+pep_plus_path = "$PEP_PLUS_PATH"
+
 try:
     with open(conf_file, 'r') as f:
         config = json.load(f)
@@ -41,7 +51,7 @@ try:
         insert_pos = len(config['modules'])
         config['modules'].insert(insert_pos, {
             "name": "pep_plus",
-            "pip": "-e /openimis-be/openimis-be-pep_plus_py"
+            "pip": f"-e {pep_plus_path}"
         })
 
         with open(conf_file, 'w') as f:
@@ -55,15 +65,75 @@ except Exception as e:
 EOF
   fi
 
-  # Run migrations FIRST (before Django apps initialize)
+  # Check if legacy tables exist, create them if not
   if [ "${DJANGO_MIGRATE,,}" == "true" ] || [ "${SCHEDULER_AUTOSTART,,}" == "false" ]; then
-        echo "Running migrations (standalone mode to avoid scheduler)..."
-        python /openimis-be/script/run_migrations.py || {
-          echo "⚠️ Standalone migration failed, trying standard migration..."
-          python manage.py migrate --noinput
-        }
-        echo "Migrations completed. Scheduler will start on next restart."
-        export SCHEDULER_AUTOSTART=True
+    echo "Checking if legacy tables exist..."
+    python3 << 'CHECKEOF'
+import os
+import psycopg2
+from psycopg2 import sql
+
+try:
+    # Get database connection parameters
+    db_host = os.getenv('DB_HOST', os.getenv('PSQL_DB_HOST', 'localhost'))
+    db_port = os.getenv('DB_PORT', os.getenv('PSQL_DB_PORT', '5432'))
+    db_name = os.getenv('DB_NAME', os.getenv('PSQL_DB_NAME', 'imis'))
+    db_user = os.getenv('DB_USER', os.getenv('PSQL_DB_USER', 'postgres'))
+    db_password = os.getenv('DB_PASSWORD', os.getenv('PSQL_DB_PASSWORD', ''))
+
+    # Connect to database
+    conn = psycopg2.connect(
+        host=db_host,
+        port=db_port,
+        database=db_name,
+        user=db_user,
+        password=db_password
+    )
+    conn.autocommit = True
+    cursor = conn.cursor()
+
+    # Check if tblUsers exists
+    cursor.execute("""
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables
+            WHERE table_name = 'tblUsers'
+        );
+    """)
+    table_exists = cursor.fetchone()[0]
+
+    if not table_exists:
+        print("📦 Legacy tables not found. Creating them...")
+
+        # Read and execute the SQL script
+        sql_file = '/openimis-be/script/create_legacy_tables.sql'
+        if os.path.exists(sql_file):
+            with open(sql_file, 'r') as f:
+                sql_script = f.read()
+            cursor.execute(sql_script)
+            print("✅ Legacy tables created successfully")
+        else:
+            print(f"⚠️ SQL script not found at {sql_file}")
+            exit(1)
+    else:
+        print("✅ Legacy tables already exist")
+
+    cursor.close()
+    conn.close()
+
+except Exception as e:
+    print(f"⚠️ Database check failed: {e}")
+    print("⚠️ Will attempt migrations anyway...")
+CHECKEOF
+
+    # Run migrations FIRST (before Django apps initialize)
+    echo "Running migrations (standalone mode to avoid scheduler)..."
+    python /openimis-be/script/run_migrations.py || {
+      echo "⚠️ Standalone migration failed"
+      echo "⚠️ Please initialize database with SQL dump or fix migration errors"
+      echo "⚠️ See: https://github.com/openimis/database_postgresql"
+      exit 1
+    }
+    echo "✅ Migrations completed successfully"
   fi
 
   # Compile messages and collect static files (moved from Dockerfile)
