@@ -586,6 +586,21 @@ class ExecucaoSessaoService(BaseService):
         if not user.has_perms(['pep_plus.add_execucaosessao']):
             raise PermissionDenied("User does not have permission to create execution records")
 
+        # Check if session already has an execution record (OneToOne constraint)
+        sessao_id = data['sessao_id']
+        existing_execucao = ExecucaoSessao.objects.filter(
+            sessao_id=sessao_id,
+            validity_to__isnull=True
+        ).first()
+
+        if existing_execucao:
+            raise ValidationError([{
+                'field': 'sessao_id',
+                'message': f'Esta sessão já possui uma execução registrada (ID: {existing_execucao.id}). '
+                           f'Cada sessão pode ter apenas uma execução. '
+                           f'Use a operação de atualização para modificar a execução existente.'
+            }])
+
         with transaction.atomic():
             execucao = ExecucaoSessao.objects.create(
                 sessao_id=data['sessao_id'],
