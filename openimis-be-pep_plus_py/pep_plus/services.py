@@ -594,12 +594,11 @@ class ExecucaoSessaoService(BaseService):
         ).first()
 
         if existing_execucao:
-            raise ValidationError([{
-                'field': 'sessao_id',
-                'message': f'Esta sessão já possui uma execução registrada (ID: {existing_execucao.id}). '
-                           f'Cada sessão pode ter apenas uma execução. '
-                           f'Use a operação de atualização para modificar a execução existente.'
-            }])
+            raise ValidationError(
+                f'Esta sessão já possui uma execução registrada (ID: {existing_execucao.id}). '
+                f'Cada sessão pode ter apenas uma execução. '
+                f'Use a operação de atualização para modificar a execução existente.'
+            )
 
         with transaction.atomic():
             execucao = ExecucaoSessao.objects.create(
