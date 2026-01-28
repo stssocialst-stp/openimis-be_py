@@ -2,8 +2,11 @@
 PEP+ GraphQL Mutations
 Implements CREATE, UPDATE, DELETE operations for all PEP+ entities
 """
+import logging
 import graphene
 from core.schema import OpenIMISMutation
+
+logger = logging.getLogger(__name__)
 from .models import (
     ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
@@ -61,7 +64,7 @@ class CreateModuloEducacionalInput(OpenIMISMutation.Input):
 
 
 class CreateModuloEducacionalMutation(OpenIMISMutation):
-    """Create a new educational module"""
+    """Create a new school attendance record (Assiduidade Escolar)"""
     _mutation_module = "pep_plus"
     _mutation_class = "CreateModuloEducacionalMutation"
 
@@ -71,9 +74,15 @@ class CreateModuloEducacionalMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
+            logger.info(f"[PEP+] CreateModuloEducacional: Iniciando criação para user={user.id if user else 'None'}")
+            logger.info(f"[PEP+] CreateModuloEducacional: Dados recebidos: nome={data.get('nome')}, id_membro_crianca={data.get('id_membro_crianca')}")
+
             modulo = ModuloEducacionalService.create(data, user)
+
+            logger.info(f"[PEP+] CreateModuloEducacional: SUCESSO - Registo criado com ID={modulo.id}, UUID={modulo.uuid}")
             return None
         except Exception as exc:
+            logger.error(f"[PEP+] CreateModuloEducacional: ERRO - {str(exc)}")
             return [{
                 'message': str(exc),
                 'detail': str(exc)
@@ -118,7 +127,7 @@ class UpdateModuloEducacionalInput(OpenIMISMutation.Input):
 
 
 class UpdateModuloEducacionalMutation(OpenIMISMutation):
-    """Update an educational module"""
+    """Update a school attendance record (Assiduidade Escolar)"""
     _mutation_module = "pep_plus"
     _mutation_class = "UpdateModuloEducacionalMutation"
 
@@ -128,10 +137,18 @@ class UpdateModuloEducacionalMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
+            logger.info(f"[PEP+] UpdateModuloEducacional: Iniciando atualização para user={user.id if user else 'None'}")
+            logger.info(f"[PEP+] UpdateModuloEducacional: ID recebido: {data.get('id')}")
+
             modulo_id = decode_id(data.pop('id'))
+            logger.info(f"[PEP+] UpdateModuloEducacional: ID decodificado: {modulo_id}")
+
             modulo = ModuloEducacionalService.update(modulo_id, data, user)
+
+            logger.info(f"[PEP+] UpdateModuloEducacional: SUCESSO - Registo atualizado ID={modulo.id}, nome={modulo.nome}")
             return None
         except Exception as exc:
+            logger.error(f"[PEP+] UpdateModuloEducacional: ERRO - {str(exc)}")
             return [{
                 'message': str(exc),
                 'detail': str(exc)
@@ -139,7 +156,7 @@ class UpdateModuloEducacionalMutation(OpenIMISMutation):
 
 
 class DeleteModuloEducacionalMutation(OpenIMISMutation):
-    """Delete an educational module"""
+    """Delete a school attendance record (Assiduidade Escolar)"""
     _mutation_module = "pep_plus"
     _mutation_class = "DeleteModuloEducacionalMutation"
 
@@ -149,9 +166,18 @@ class DeleteModuloEducacionalMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
-            ModuloEducacionalService.delete(decode_id(data['id']), user)
+            logger.info(f"[PEP+] DeleteModuloEducacional: Iniciando exclusão para user={user.id if user else 'None'}")
+            logger.info(f"[PEP+] DeleteModuloEducacional: ID recebido: {data.get('id')}")
+
+            modulo_id = decode_id(data['id'])
+            logger.info(f"[PEP+] DeleteModuloEducacional: ID decodificado: {modulo_id}")
+
+            ModuloEducacionalService.delete(modulo_id, user)
+
+            logger.info(f"[PEP+] DeleteModuloEducacional: SUCESSO - Registo excluído ID={modulo_id}")
             return None
         except Exception as exc:
+            logger.error(f"[PEP+] DeleteModuloEducacional: ERRO - {str(exc)}")
             return [{
                 'message': str(exc),
                 'detail': str(exc)
