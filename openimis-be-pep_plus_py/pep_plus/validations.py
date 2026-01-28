@@ -413,22 +413,38 @@ def validate_encaminhamento(data):
 
 def validate_modulo_educacional(data):
     """
-    Validates educational module data
+    Validates school attendance (Assiduidade Escolar) data
     """
     errors = []
-
-    # Código obrigatório
-    if not data.get('codigo'):
-        errors.append({
-            'field': 'codigo',
-            'message': 'Código é obrigatório'
-        })
 
     # Nome obrigatório
     if not data.get('nome'):
         errors.append({
             'field': 'nome',
             'message': 'Nome é obrigatório'
+        })
+
+    # Validar aproveitamento_primeiro_trimestre se fornecido
+    aproveitamento_valido = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '+10']
+    if data.get('aproveitamento_primeiro_trimestre') and data['aproveitamento_primeiro_trimestre'] not in aproveitamento_valido:
+        errors.append({
+            'field': 'aproveitamento_primeiro_trimestre',
+            'message': f'Aproveitamento deve ser um dos valores: {", ".join(aproveitamento_valido)}'
+        })
+
+    # Validar faixa_de_faltas se fornecido
+    faixa_faltas_valido = ['1-3', '4-6', '7-10', '+10']
+    if data.get('faixa_de_faltas') and data['faixa_de_faltas'] not in faixa_faltas_valido:
+        errors.append({
+            'field': 'faixa_de_faltas',
+            'message': f'Faixa de faltas deve ser um dos valores: {", ".join(faixa_faltas_valido)}'
+        })
+
+    # Validar idade se fornecida (deve ser positiva)
+    if data.get('idade') is not None and data['idade'] < 0:
+        errors.append({
+            'field': 'idade',
+            'message': 'Idade não pode ser negativa'
         })
 
     return errors

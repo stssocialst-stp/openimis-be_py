@@ -50,13 +50,13 @@ def parse_json_field(value, default=None):
 
 
 class ModuloEducacionalService(BaseService):
-    """Service for Educational Module operations"""
+    """Service for School Attendance (Assiduidade Escolar) operations"""
 
     OBJECT_TYPE = ModuloEducacional
 
     @classmethod
     def create(cls, data, user):
-        """Create a new educational module"""
+        """Create a new school attendance record"""
         # Validate
         errors = validate_modulo_educacional(data)
         if errors:
@@ -64,16 +64,41 @@ class ModuloEducacionalService(BaseService):
 
         # Check permissions
         if not user.has_perms(['pep_plus.add_moduloeducacional']):
-            raise PermissionDenied("User does not have permission to create educational modules")
+            raise PermissionDenied("User does not have permission to create school attendance records")
 
         with transaction.atomic():
             modulo = ModuloEducacional.objects.create(
-                codigo=data['codigo'],
+                # Identificação
+                id_membro_crianca=data.get('id_membro_crianca'),
                 nome=data['nome'],
-                descricao=data.get('descricao'),
-                ordem=data.get('ordem', 0),
-                duracao_semanas=data.get('duracao_semanas', 1),
-                ativo=data.get('ativo', True)
+                nome_encarregado=data.get('nome_encarregado'),
+
+                # Dados escolares
+                escola=data.get('escola'),
+                escolaridade_actual=data.get('escolaridade_actual'),
+                data_nascimento=data.get('data_nascimento'),
+                id_da_crianca=data.get('id_da_crianca'),
+                sexo=data.get('sexo'),
+                dados_escolar_correctos=data.get('dados_escolar_correctos'),
+                escola_actual=data.get('escola_actual'),
+                classe=data.get('classe'),
+                idade=data.get('idade'),
+                dados_escolares_correctos=data.get('dados_escolares_correctos'),
+
+                # Localização
+                informacoes_localizacao=parse_json_field(data.get('informacoes_localizacao'), {}),
+
+                # Frequência escolar
+                classe_que_frequenta=data.get('classe_que_frequenta'),
+                aproveitamento_primeiro_trimestre=data.get('aproveitamento_primeiro_trimestre'),
+                faixa_de_faltas=data.get('faixa_de_faltas'),
+
+                # Disciplinas
+                disciplinas_basicas=data.get('disciplinas_basicas'),
+                disciplinas_avancadas=data.get('disciplinas_avancadas'),
+
+                # Observações
+                observacoes=data.get('observacoes')
             )
             modulo.audit_user_id = user.id_for_audit
             modulo.save()
@@ -81,15 +106,15 @@ class ModuloEducacionalService(BaseService):
 
     @classmethod
     def update(cls, modulo_id, data, user):
-        """Update an educational module"""
+        """Update a school attendance record"""
         try:
             modulo = ModuloEducacional.objects.get(id=modulo_id, validity_to__isnull=True)
         except ModuloEducacional.DoesNotExist:
-            raise ValidationError([{'message': 'Educational module not found'}])
+            raise ValidationError([{'message': 'School attendance record not found'}])
 
         # Check permissions
         if not user.has_perms(['pep_plus.change_moduloeducacional']):
-            raise PermissionDenied("User does not have permission to update educational modules")
+            raise PermissionDenied("User does not have permission to update school attendance records")
 
         # Validate
         errors = validate_modulo_educacional(data)
@@ -97,26 +122,73 @@ class ModuloEducacionalService(BaseService):
             raise ValidationError(errors)
 
         with transaction.atomic():
-            modulo.nome = data.get('nome', modulo.nome)
-            modulo.descricao = data.get('descricao', modulo.descricao)
-            modulo.ordem = data.get('ordem', modulo.ordem)
-            modulo.duracao_semanas = data.get('duracao_semanas', modulo.duracao_semanas)
-            modulo.ativo = data.get('ativo', modulo.ativo)
+            # Identificação
+            if 'id_membro_crianca' in data:
+                modulo.id_membro_crianca = data['id_membro_crianca']
+            if 'nome' in data:
+                modulo.nome = data['nome']
+            if 'nome_encarregado' in data:
+                modulo.nome_encarregado = data['nome_encarregado']
+
+            # Dados escolares
+            if 'escola' in data:
+                modulo.escola = data['escola']
+            if 'escolaridade_actual' in data:
+                modulo.escolaridade_actual = data['escolaridade_actual']
+            if 'data_nascimento' in data:
+                modulo.data_nascimento = data['data_nascimento']
+            if 'id_da_crianca' in data:
+                modulo.id_da_crianca = data['id_da_crianca']
+            if 'sexo' in data:
+                modulo.sexo = data['sexo']
+            if 'dados_escolar_correctos' in data:
+                modulo.dados_escolar_correctos = data['dados_escolar_correctos']
+            if 'escola_actual' in data:
+                modulo.escola_actual = data['escola_actual']
+            if 'classe' in data:
+                modulo.classe = data['classe']
+            if 'idade' in data:
+                modulo.idade = data['idade']
+            if 'dados_escolares_correctos' in data:
+                modulo.dados_escolares_correctos = data['dados_escolares_correctos']
+
+            # Localização
+            if 'informacoes_localizacao' in data:
+                modulo.informacoes_localizacao = parse_json_field(data['informacoes_localizacao'], modulo.informacoes_localizacao)
+
+            # Frequência escolar
+            if 'classe_que_frequenta' in data:
+                modulo.classe_que_frequenta = data['classe_que_frequenta']
+            if 'aproveitamento_primeiro_trimestre' in data:
+                modulo.aproveitamento_primeiro_trimestre = data['aproveitamento_primeiro_trimestre']
+            if 'faixa_de_faltas' in data:
+                modulo.faixa_de_faltas = data['faixa_de_faltas']
+
+            # Disciplinas
+            if 'disciplinas_basicas' in data:
+                modulo.disciplinas_basicas = data['disciplinas_basicas']
+            if 'disciplinas_avancadas' in data:
+                modulo.disciplinas_avancadas = data['disciplinas_avancadas']
+
+            # Observações
+            if 'observacoes' in data:
+                modulo.observacoes = data['observacoes']
+
             modulo.audit_user_id = user.id_for_audit
             modulo.save()
             return modulo
 
     @classmethod
     def delete(cls, modulo_id, user):
-        """Soft delete an educational module"""
+        """Soft delete a school attendance record"""
         try:
             modulo = ModuloEducacional.objects.get(id=modulo_id, validity_to__isnull=True)
         except ModuloEducacional.DoesNotExist:
-            raise ValidationError([{'message': 'Educational module not found'}])
+            raise ValidationError([{'message': 'School attendance record not found'}])
 
         # Check permissions
         if not user.has_perms(['pep_plus.delete_moduloeducacional']):
-            raise PermissionDenied("User does not have permission to delete educational modules")
+            raise PermissionDenied("User does not have permission to delete school attendance records")
 
         with transaction.atomic():
             modulo.delete_history(user=user)

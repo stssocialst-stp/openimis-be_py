@@ -11,24 +11,88 @@ from location.models import Location
 
 class ModuloEducacional(core_models.VersionedModel):
     """
-    Educational Module - Represents a PEP+ educational module
+    Módulo Educacional - Registo de Assiduidade Escolar de Crianças
     """
     id = models.AutoField(db_column='ModuloEducacionalID', primary_key=True)
     uuid = models.CharField(db_column='ModuloEducacionalUUID', max_length=36, default=uuid.uuid4, unique=True)
 
-    codigo = models.CharField(db_column='Codigo', max_length=50, unique=True)
+    # Identificação do membro/criança
+    id_membro_crianca = models.CharField(db_column='IdMembroCrianca', max_length=100, null=True, blank=True)
     nome = models.CharField(db_column='Nome', max_length=255)
-    descricao = models.TextField(db_column='Descricao', null=True, blank=True)
-    ordem = models.IntegerField(db_column='Ordem', default=0)
-    duracao_semanas = models.IntegerField(db_column='DuracaoSemanas', default=1)
-    ativo = models.BooleanField(db_column='Ativo', default=True)
+    nome_encarregado = models.CharField(db_column='NomeEncarregado', max_length=255, null=True, blank=True)
+
+    # Dados escolares
+    escola = models.CharField(db_column='Escola', max_length=255, null=True, blank=True)
+    escolaridade_actual = models.CharField(db_column='EscolaridadeActual', max_length=100, null=True, blank=True)
+    data_nascimento = models.DateField(db_column='DataNascimento', null=True, blank=True)
+    id_da_crianca = models.CharField(db_column='IdDaCrianca', max_length=100, null=True, blank=True)
+    sexo = models.CharField(db_column='Sexo', max_length=20, null=True, blank=True)
+    dados_escolar_correctos = models.BooleanField(db_column='DadosEscolarCorrectos', null=True, blank=True)
+    escola_actual = models.CharField(db_column='EscolaActual', max_length=255, null=True, blank=True)
+    classe = models.CharField(db_column='Classe', max_length=50, null=True, blank=True)
+    idade = models.IntegerField(db_column='Idade', null=True, blank=True)
+    dados_escolares_correctos = models.BooleanField(db_column='DadosEscolaresCorrectos', null=True, blank=True)
+
+    # Informações de localização (JSON)
+    informacoes_localizacao = models.JSONField(
+        db_column='InformacoesLocalizacao',
+        default=dict,
+        blank=True,
+        help_text='Objeto: { nomeDaRegiao, distritoId, Localidade, nomeEscola, pontoReferencia, meioResidencia }'
+    )
+
+    # Dados de frequência escolar
+    classe_que_frequenta = models.CharField(db_column='ClasseQueFrequenta', max_length=50, null=True, blank=True)
+
+    APROVEITAMENTO_CHOICES = [
+        ('0', '0'),
+        ('1', '1'),
+        ('2', '2'),
+        ('3', '3'),
+        ('4', '4'),
+        ('5', '5'),
+        ('6', '6'),
+        ('7', '7'),
+        ('8', '8'),
+        ('9', '9'),
+        ('10', '10'),
+        ('+10', '+10'),
+    ]
+    aproveitamento_primeiro_trimestre = models.CharField(
+        db_column='AproveitamentoPrimeiroTrimestre',
+        max_length=10,
+        choices=APROVEITAMENTO_CHOICES,
+        null=True,
+        blank=True
+    )
+
+    FAIXA_FALTAS_CHOICES = [
+        ('1-3', '1-3'),
+        ('4-6', '4-6'),
+        ('7-10', '7-10'),
+        ('+10', '+10'),
+    ]
+    faixa_de_faltas = models.CharField(
+        db_column='FaixaDeFaltas',
+        max_length=10,
+        choices=FAIXA_FALTAS_CHOICES,
+        null=True,
+        blank=True
+    )
+
+    # Disciplinas
+    disciplinas_basicas = models.TextField(db_column='DisciplinasBasicas', null=True, blank=True)
+    disciplinas_avancadas = models.TextField(db_column='DisciplinasAvancadas', null=True, blank=True)
+
+    # Observações
+    observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
 
     class Meta:
         managed = True
         db_table = 'tblModuloEducacional'
 
     def __str__(self):
-        return f"{self.codigo} - {self.nome}"
+        return f"{self.id_membro_crianca or self.id} - {self.nome}"
 
 
 class GrupoFamiliar(core_models.VersionedModel):

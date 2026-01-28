@@ -18,16 +18,27 @@ from .models import (
 
 
 class ModuloEducacionalGQLType(DjangoObjectType):
-    """GraphQL Type for Educational Module"""
+    """GraphQL Type for Assiduidade Escolar (Educational Module)"""
 
     class Meta:
         model = ModuloEducacional
         interfaces = (graphene.relay.Node,)
         filter_fields = {
-            "codigo": ["exact", "icontains"],
+            "id_membro_crianca": ["exact", "icontains"],
             "nome": ["exact", "icontains"],
-            "ativo": ["exact"],
-            "ordem": ["exact", "lt", "lte", "gt", "gte"],
+            "nome_encarregado": ["exact", "icontains"],
+            "escola": ["exact", "icontains"],
+            "escolaridade_actual": ["exact", "icontains"],
+            "id_da_crianca": ["exact", "icontains"],
+            "sexo": ["exact"],
+            "dados_escolar_correctos": ["exact"],
+            "escola_actual": ["exact", "icontains"],
+            "classe": ["exact", "icontains"],
+            "idade": ["exact", "lt", "lte", "gt", "gte"],
+            "dados_escolares_correctos": ["exact"],
+            "classe_que_frequenta": ["exact", "icontains"],
+            "aproveitamento_primeiro_trimestre": ["exact"],
+            "faixa_de_faltas": ["exact"],
         }
         connection_class = ExtendedConnection
 

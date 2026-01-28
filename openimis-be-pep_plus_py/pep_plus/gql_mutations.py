@@ -26,13 +26,38 @@ from .utils import convert_ids_in_session_data, decode_id
 # ========== EDUCATIONAL MODULE MUTATIONS ==========
 
 class CreateModuloEducacionalInput(OpenIMISMutation.Input):
-    """Input for creating an educational module"""
-    codigo = graphene.String(required=True)
+    """Input for creating school attendance record (Assiduidade Escolar)"""
+    # Identificação
+    id_membro_crianca = graphene.String(required=False)
     nome = graphene.String(required=True)
-    descricao = graphene.String(required=False)
-    ordem = graphene.Int(required=False)
-    duracao_semanas = graphene.Int(required=False)
-    ativo = graphene.Boolean(required=False)
+    nome_encarregado = graphene.String(required=False)
+
+    # Dados escolares
+    escola = graphene.String(required=False)
+    escolaridade_actual = graphene.String(required=False)
+    data_nascimento = graphene.Date(required=False)
+    id_da_crianca = graphene.String(required=False)
+    sexo = graphene.String(required=False)
+    dados_escolar_correctos = graphene.Boolean(required=False)
+    escola_actual = graphene.String(required=False)
+    classe = graphene.String(required=False)
+    idade = graphene.Int(required=False)
+    dados_escolares_correctos = graphene.Boolean(required=False)
+
+    # Localização (JSON)
+    informacoes_localizacao = graphene.JSONString(required=False)
+
+    # Frequência escolar
+    classe_que_frequenta = graphene.String(required=False)
+    aproveitamento_primeiro_trimestre = graphene.String(required=False)  # 0-10, +10
+    faixa_de_faltas = graphene.String(required=False)  # 1-3, 4-6, 7-10, +10
+
+    # Disciplinas
+    disciplinas_basicas = graphene.String(required=False)
+    disciplinas_avancadas = graphene.String(required=False)
+
+    # Observações
+    observacoes = graphene.String(required=False)
 
 
 class CreateModuloEducacionalMutation(OpenIMISMutation):
@@ -56,14 +81,40 @@ class CreateModuloEducacionalMutation(OpenIMISMutation):
 
 
 class UpdateModuloEducacionalInput(OpenIMISMutation.Input):
-    """Input for updating an educational module"""
+    """Input for updating school attendance record (Assiduidade Escolar)"""
     id = graphene.String(required=True)
-    codigo = graphene.String(required=False)
+
+    # Identificação
+    id_membro_crianca = graphene.String(required=False)
     nome = graphene.String(required=False)
-    descricao = graphene.String(required=False)
-    ordem = graphene.Int(required=False)
-    duracao_semanas = graphene.Int(required=False)
-    ativo = graphene.Boolean(required=False)
+    nome_encarregado = graphene.String(required=False)
+
+    # Dados escolares
+    escola = graphene.String(required=False)
+    escolaridade_actual = graphene.String(required=False)
+    data_nascimento = graphene.Date(required=False)
+    id_da_crianca = graphene.String(required=False)
+    sexo = graphene.String(required=False)
+    dados_escolar_correctos = graphene.Boolean(required=False)
+    escola_actual = graphene.String(required=False)
+    classe = graphene.String(required=False)
+    idade = graphene.Int(required=False)
+    dados_escolares_correctos = graphene.Boolean(required=False)
+
+    # Localização (JSON)
+    informacoes_localizacao = graphene.JSONString(required=False)
+
+    # Frequência escolar
+    classe_que_frequenta = graphene.String(required=False)
+    aproveitamento_primeiro_trimestre = graphene.String(required=False)
+    faixa_de_faltas = graphene.String(required=False)
+
+    # Disciplinas
+    disciplinas_basicas = graphene.String(required=False)
+    disciplinas_avancadas = graphene.String(required=False)
+
+    # Observações
+    observacoes = graphene.String(required=False)
 
 
 class UpdateModuloEducacionalMutation(OpenIMISMutation):
