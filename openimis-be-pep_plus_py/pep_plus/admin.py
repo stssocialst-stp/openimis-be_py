@@ -18,10 +18,10 @@ from .models import (
 
 @admin.register(ModuloEducacional)
 class ModuloEducacionalAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'nome', 'ordem', 'ativo', 'validity_from')
-    list_filter = ('ativo', 'validity_from')
-    search_fields = ('codigo', 'nome')
-    ordering = ('ordem', 'codigo')
+    list_display = ('id_membro_crianca', 'nome', 'nome_encarregado', 'escola_actual', 'classe', 'idade', 'validity_from')
+    list_filter = ('sexo', 'classe', 'faixa_de_faltas', 'aproveitamento_primeiro_trimestre', 'validity_from')
+    search_fields = ('id_membro_crianca', 'nome', 'nome_encarregado', 'id_da_crianca')
+    ordering = ('nome',)
 
 
 @admin.register(GrupoFamiliar)
