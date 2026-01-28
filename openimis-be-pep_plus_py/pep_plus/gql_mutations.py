@@ -74,14 +74,17 @@ class CreateModuloEducacionalMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
+            print(f"[PEP+] CreateModuloEducacional: Iniciando criação para user={user.id if user else 'None'}")
+            print(f"[PEP+] CreateModuloEducacional: Dados recebidos: {data}")
             logger.info(f"[PEP+] CreateModuloEducacional: Iniciando criação para user={user.id if user else 'None'}")
-            logger.info(f"[PEP+] CreateModuloEducacional: Dados recebidos: nome={data.get('nome')}, id_membro_crianca={data.get('id_membro_crianca')}")
 
             modulo = ModuloEducacionalService.create(data, user)
 
+            print(f"[PEP+] CreateModuloEducacional: SUCESSO - ID={modulo.id}, UUID={modulo.uuid}, nome={modulo.nome}")
             logger.info(f"[PEP+] CreateModuloEducacional: SUCESSO - Registo criado com ID={modulo.id}, UUID={modulo.uuid}")
             return None
         except Exception as exc:
+            print(f"[PEP+] CreateModuloEducacional: ERRO - {str(exc)}")
             logger.error(f"[PEP+] CreateModuloEducacional: ERRO - {str(exc)}")
             return [{
                 'message': str(exc),
@@ -137,18 +140,18 @@ class UpdateModuloEducacionalMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
-            logger.info(f"[PEP+] UpdateModuloEducacional: Iniciando atualização para user={user.id if user else 'None'}")
-            logger.info(f"[PEP+] UpdateModuloEducacional: ID recebido: {data.get('id')}")
+            print(f"[PEP+] UpdateModuloEducacional: Iniciando atualização para user={user.id if user else 'None'}")
+            print(f"[PEP+] UpdateModuloEducacional: Dados recebidos: {data}")
 
             modulo_id = decode_id(data.pop('id'))
-            logger.info(f"[PEP+] UpdateModuloEducacional: ID decodificado: {modulo_id}")
+            print(f"[PEP+] UpdateModuloEducacional: ID decodificado: {modulo_id}")
 
             modulo = ModuloEducacionalService.update(modulo_id, data, user)
 
-            logger.info(f"[PEP+] UpdateModuloEducacional: SUCESSO - Registo atualizado ID={modulo.id}, nome={modulo.nome}")
+            print(f"[PEP+] UpdateModuloEducacional: SUCESSO - ID={modulo.id}, nome={modulo.nome}")
             return None
         except Exception as exc:
-            logger.error(f"[PEP+] UpdateModuloEducacional: ERRO - {str(exc)}")
+            print(f"[PEP+] UpdateModuloEducacional: ERRO - {str(exc)}")
             return [{
                 'message': str(exc),
                 'detail': str(exc)
@@ -166,18 +169,18 @@ class DeleteModuloEducacionalMutation(OpenIMISMutation):
     @classmethod
     def async_mutate(cls, user, **data):
         try:
-            logger.info(f"[PEP+] DeleteModuloEducacional: Iniciando exclusão para user={user.id if user else 'None'}")
-            logger.info(f"[PEP+] DeleteModuloEducacional: ID recebido: {data.get('id')}")
+            print(f"[PEP+] DeleteModuloEducacional: Iniciando exclusão para user={user.id if user else 'None'}")
+            print(f"[PEP+] DeleteModuloEducacional: ID recebido: {data.get('id')}")
 
             modulo_id = decode_id(data['id'])
-            logger.info(f"[PEP+] DeleteModuloEducacional: ID decodificado: {modulo_id}")
+            print(f"[PEP+] DeleteModuloEducacional: ID decodificado: {modulo_id}")
 
             ModuloEducacionalService.delete(modulo_id, user)
 
-            logger.info(f"[PEP+] DeleteModuloEducacional: SUCESSO - Registo excluído ID={modulo_id}")
+            print(f"[PEP+] DeleteModuloEducacional: SUCESSO - ID={modulo_id}")
             return None
         except Exception as exc:
-            logger.error(f"[PEP+] DeleteModuloEducacional: ERRO - {str(exc)}")
+            print(f"[PEP+] DeleteModuloEducacional: ERRO - {str(exc)}")
             return [{
                 'message': str(exc),
                 'detail': str(exc)
