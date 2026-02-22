@@ -11,20 +11,22 @@ from .models import (
     ModuloPEP, Escola, Classe, Disciplina, TipoEncaminhamento,
     ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
-    EncaminhamentoSessao, RoteiroReuniaoBimestral
+    EncaminhamentoSessao, RoteiroReuniaoBimestral,
+    CoordenacaoDistrital, CoordenacaoDistritalTecnico
 )
 from .gql_queries import (
     ModuloPEPGQLType, EscolaGQLType, ClasseGQLType, DisciplinaGQLType, TipoEncaminhamentoGQLType,
     ModuloEducacionalGQLType, GrupoFamiliarGQLType, SessaoPEPGQLType,
     PresencaSessaoGQLType, ExecucaoSessaoGQLType, SupervisaoSessaoGQLType,
     RelatorioDistritalBimestralGQLType, EncaminhamentoSessaoGQLType,
-    RoteiroReuniaoBimestralGQLType
+    RoteiroReuniaoBimestralGQLType, CoordenacaoDistritalGQLType
 )
 from .services import (
     ModuloPEPService, EscolaService, ClasseService, DisciplinaService, TipoEncaminhamentoService,
     ModuloEducacionalService, GrupoFamiliarService, SessaoPEPService,
     PresencaSessaoService, ExecucaoSessaoService, SupervisaoSessaoService,
-    RelatorioDistritalService, EncaminhamentoService, RoteiroReuniaoService
+    RelatorioDistritalService, EncaminhamentoService, RoteiroReuniaoService,
+    CoordenacaoDistritalService
 )
 from .utils import convert_ids_in_session_data, decode_id
 
@@ -1486,6 +1488,133 @@ class DeleteRelatorioSupervisaoMutation(OpenIMISMutation):
 
 
 # =============================================================================
+# =============================================================================
+# COORDENAÇÃO DISTRITAL MUTATIONS
+# =============================================================================
+
+class CreateCoordenacaoDistritalInput(OpenIMISMutation.Input):
+    """Input para criar uma Coordenação Distrital"""
+    distrito_id = graphene.String(required=True, description="ID Relay do Distrito (Location)")
+    coordenador_id = graphene.String(required=True, description="ID Relay do Coordenador Distrital")
+    tecnico_administrativo_id = graphene.String(required=False, description="ID Relay do Técnico Administrativo (1 por distrito)")
+    tecnicos_operacionais_ids = graphene.List(graphene.String, required=False, description="Lista de IDs Relay dos Técnicos Operacionais")
+    ativo = graphene.Boolean(required=False)
+    observacoes = graphene.String(required=False)
+
+
+class CreateCoordenacaoDistritalMutation(OpenIMISMutation):
+    """Cria uma nova Coordenação Distrital"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "CreateCoordenacaoDistritalMutation"
+
+    class Input(CreateCoordenacaoDistritalInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            CoordenacaoDistritalService.create(data, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+class UpdateCoordenacaoDistritalInput(OpenIMISMutation.Input):
+    """Input para actualizar uma Coordenação Distrital"""
+    id = graphene.String(required=True, description="ID Relay da CoordenacaoDistrital a actualizar")
+    coordenador_id = graphene.String(required=False)
+    tecnico_administrativo_id = graphene.String(required=False)
+    tecnicos_operacionais_ids = graphene.List(graphene.String, required=False, description="Substitui todos os técnicos operacionais")
+    ativo = graphene.Boolean(required=False)
+    observacoes = graphene.String(required=False)
+
+
+class UpdateCoordenacaoDistritalMutation(OpenIMISMutation):
+    """Actualiza uma Coordenação Distrital existente"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "UpdateCoordenacaoDistritalMutation"
+
+    class Input(UpdateCoordenacaoDistritalInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            coord_id = decode_id(data.pop('id'))
+            CoordenacaoDistritalService.update(coord_id, data, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+class DeleteCoordenacaoDistritalMutation(OpenIMISMutation):
+    """Desactiva (soft delete) uma Coordenação Distrital"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "DeleteCoordenacaoDistritalMutation"
+
+    class Input(OpenIMISMutation.Input):
+        id = graphene.String(required=True)
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            coord_id = decode_id(data.get('id'))
+            CoordenacaoDistritalService.delete(coord_id, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+class AddTecnicoOperacionalInput(OpenIMISMutation.Input):
+    """Input para adicionar um técnico operacional a uma Coordenação Distrital"""
+    coordenacao_id = graphene.String(required=True, description="ID Relay da CoordenacaoDistrital")
+    tecnico_id = graphene.String(required=True, description="ID Relay do utilizador a adicionar como técnico operacional")
+
+
+class AddTecnicoOperacionalMutation(OpenIMISMutation):
+    """Adiciona um técnico operacional a uma Coordenação Distrital"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "AddTecnicoOperacionalMutation"
+
+    class Input(AddTecnicoOperacionalInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            coord_id = decode_id(data.get('coordenacao_id'))
+            tecnico_id = decode_id(data.get('tecnico_id'))
+            CoordenacaoDistritalService.add_tecnico_operacional(coord_id, tecnico_id, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+class RemoveTecnicoOperacionalInput(OpenIMISMutation.Input):
+    """Input para remover um técnico operacional de uma Coordenação Distrital"""
+    coordenacao_id = graphene.String(required=True, description="ID Relay da CoordenacaoDistrital")
+    tecnico_id = graphene.String(required=True, description="ID Relay do utilizador a remover")
+
+
+class RemoveTecnicoOperacionalMutation(OpenIMISMutation):
+    """Remove um técnico operacional de uma Coordenação Distrital"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "RemoveTecnicoOperacionalMutation"
+
+    class Input(RemoveTecnicoOperacionalInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            coord_id = decode_id(data.get('coordenacao_id'))
+            tecnico_id = decode_id(data.get('tecnico_id'))
+            CoordenacaoDistritalService.remove_tecnico_operacional(coord_id, tecnico_id, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
 # ROOT MUTATION
 # =============================================================================
 
@@ -1566,3 +1695,10 @@ class Mutation(graphene.ObjectType):
     create_relatorio_supervisao = CreateRelatorioSupervisaoMutation.Field()
     update_relatorio_supervisao = UpdateRelatorioSupervisaoMutation.Field()
     delete_relatorio_supervisao = DeleteRelatorioSupervisaoMutation.Field()
+
+    # ---- Coordenação Distrital ----
+    create_coordenacao_distrital = CreateCoordenacaoDistritalMutation.Field()
+    update_coordenacao_distrital = UpdateCoordenacaoDistritalMutation.Field()
+    delete_coordenacao_distrital = DeleteCoordenacaoDistritalMutation.Field()
+    add_tecnico_operacional = AddTecnicoOperacionalMutation.Field()
+    remove_tecnico_operacional = RemoveTecnicoOperacionalMutation.Field()

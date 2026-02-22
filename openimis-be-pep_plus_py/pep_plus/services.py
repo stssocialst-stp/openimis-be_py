@@ -11,7 +11,8 @@ from .models import (
     ModuloEducacional, ModuloEducacionalDisciplina,
     GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
-    EncaminhamentoSessao, RoteiroReuniaoBimestral
+    EncaminhamentoSessao, RoteiroReuniaoBimestral,
+    CoordenacaoDistrital, CoordenacaoDistritalTecnico
 )
 from .validations import (
     validate_sessao_planeamento, validate_presenca_sessao,
@@ -1395,3 +1396,150 @@ class RelatorioSupervisaoService(BaseService):
             relatorio.audit_user_id = user.id_for_audit
             relatorio.save()
             return relatorio
+
+
+# =============================================================================
+# COORDENAÇÃO DISTRITAL SERVICE
+# =============================================================================
+
+class CoordenacaoDistritalService:
+    """
+    Service para CoordenacaoDistrital.
+
+    Regras de negócio:
+    - Um distrito só pode ter 1 CoordenacaoDistrital activa (validity_to IS NULL + ativo=True)
+    - 1 coordenador por distrito (FK)
+    - 1 técnico administrativo por distrito (FK, opcional)
+    - N técnicos operacionais (M2M via CoordenacaoDistritalTecnico)
+    - tecnicos_operacionais_ids em create/update substitui a lista completa
+    """
+
+    @staticmethod
+    def _decode_pk(relay_id):
+        """Decode Relay global ID para PK inteiro."""
+        from .utils import decode_id
+        return decode_id(relay_id) if relay_id else None
+
+    @classmethod
+    def _resolve_tecnico_ids(cls, ids_list):
+        """Converte lista de Relay IDs para PKs de utilizadores."""
+        from django.conf import settings
+        from django.apps import apps
+        User = apps.get_model(*settings.AUTH_USER_MODEL.split('.'))
+        pks = [cls._decode_pk(rid) for rid in (ids_list or []) if rid]
+        return list(User.objects.filter(pk__in=pks))
+
+    @classmethod
+    def create(cls, data, user):
+        from django.utils import timezone
+        from location.models import Location
+        from django.conf import settings
+        from django.apps import apps
+
+        User = apps.get_model(*settings.AUTH_USER_MODEL.split('.'))
+
+        distrito_id = cls._decode_pk(data.get('distrito_id'))
+        coordenador_id = cls._decode_pk(data.get('coordenador_id'))
+        tecnico_admin_id = cls._decode_pk(data.get('tecnico_administrativo_id'))
+        tecnicos_ids = data.get('tecnicos_operacionais_ids', [])
+
+        if not distrito_id:
+            raise ValidationError([{'message': 'distrito_id é obrigatório'}])
+        if not coordenador_id:
+            raise ValidationError([{'message': 'coordenador_id é obrigatório'}])
+
+        # Verificar que não existe já uma coordenação activa para este distrito
+        if CoordenacaoDistrital.objects.filter(
+            distrito_id=distrito_id, ativo=True, validity_to__isnull=True
+        ).exists():
+            raise ValidationError([{
+                'message': 'Já existe uma Coordenação Distrital activa para este distrito. '
+                           'Desactive a existente antes de criar uma nova.'
+            }])
+
+        with transaction.atomic():
+            coord = CoordenacaoDistrital(
+                distrito_id=distrito_id,
+                coordenador_id=coordenador_id,
+                tecnico_administrativo_id=tecnico_admin_id,
+                ativo=data.get('ativo', True),
+                observacoes=data.get('observacoes'),
+                audit_user_id=user.id_for_audit,
+            )
+            coord.save()
+
+            # Técnicos operacionais
+            for tecnico in cls._resolve_tecnico_ids(tecnicos_ids):
+                CoordenacaoDistritalTecnico.objects.create(
+                    coordenacao=coord,
+                    tecnico=tecnico,
+                )
+
+            return coord
+
+    @classmethod
+    def update(cls, coord_id, data, user):
+        try:
+            coord = CoordenacaoDistrital.objects.get(id=coord_id, validity_to__isnull=True)
+        except CoordenacaoDistrital.DoesNotExist:
+            raise ValidationError([{'message': 'Coordenação Distrital não encontrada'}])
+
+        with transaction.atomic():
+            if 'coordenador_id' in data and data['coordenador_id']:
+                coord.coordenador_id = cls._decode_pk(data['coordenador_id'])
+            if 'tecnico_administrativo_id' in data:
+                coord.tecnico_administrativo_id = cls._decode_pk(data['tecnico_administrativo_id'])
+            if 'ativo' in data:
+                coord.ativo = data['ativo']
+            if 'observacoes' in data:
+                coord.observacoes = data['observacoes']
+
+            # Se foram fornecidos tecnicos_operacionais_ids, substitui lista completa
+            if 'tecnicos_operacionais_ids' in data:
+                coord.tecnicos_operacionais.all().delete()
+                for tecnico in cls._resolve_tecnico_ids(data['tecnicos_operacionais_ids']):
+                    CoordenacaoDistritalTecnico.objects.create(
+                        coordenacao=coord,
+                        tecnico=tecnico,
+                    )
+
+            coord.audit_user_id = user.id_for_audit
+            coord.save()
+            return coord
+
+    @classmethod
+    def delete(cls, coord_id, user):
+        try:
+            coord = CoordenacaoDistrital.objects.get(id=coord_id, validity_to__isnull=True)
+        except CoordenacaoDistrital.DoesNotExist:
+            raise ValidationError([{'message': 'Coordenação Distrital não encontrada'}])
+
+        with transaction.atomic():
+            from django.utils import timezone
+            coord.validity_to = timezone.now()
+            coord.ativo = False
+            coord.audit_user_id = user.id_for_audit
+            coord.save()
+            return coord
+
+    @classmethod
+    def add_tecnico_operacional(cls, coord_id, tecnico_id, user):
+        """Adiciona um único técnico operacional à coordenação."""
+        try:
+            coord = CoordenacaoDistrital.objects.get(id=coord_id, validity_to__isnull=True)
+        except CoordenacaoDistrital.DoesNotExist:
+            raise ValidationError([{'message': 'Coordenação Distrital não encontrada'}])
+
+        if CoordenacaoDistritalTecnico.objects.filter(coordenacao=coord, tecnico_id=tecnico_id).exists():
+            raise ValidationError([{'message': 'Este técnico já está associado a esta coordenação'}])
+
+        CoordenacaoDistritalTecnico.objects.create(coordenacao=coord, tecnico_id=tecnico_id)
+
+    @classmethod
+    def remove_tecnico_operacional(cls, coord_id, tecnico_id, user):
+        """Remove um único técnico operacional da coordenação."""
+        deleted, _ = CoordenacaoDistritalTecnico.objects.filter(
+            coordenacao_id=coord_id, tecnico_id=tecnico_id
+        ).delete()
+        if not deleted:
+            raise ValidationError([{'message': 'Técnico não encontrado nesta coordenação'}])

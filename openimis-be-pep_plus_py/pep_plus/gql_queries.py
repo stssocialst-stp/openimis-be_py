@@ -15,7 +15,8 @@ from .models import (
     ModuloEducacional, ModuloEducacionalDisciplina,
     GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
-    EncaminhamentoSessao, RoteiroReuniaoBimestral, RelatorioSupervisaoBimestral
+    EncaminhamentoSessao, RoteiroReuniaoBimestral, RelatorioSupervisaoBimestral,
+    CoordenacaoDistrital, CoordenacaoDistritalTecnico
 )
 
 
@@ -367,6 +368,48 @@ class RelatorioSupervisaoBimestralGQLType(DjangoObjectType):
         connection_class = ExtendedConnection
 
 
+# =============================================================================
+# GQL TYPES — COORDENAÇÃO DISTRITAL
+# =============================================================================
+
+class CoordenacaoDistritalTecnicoGQLType(DjangoObjectType):
+    """GraphQL Type for the M2M through table CoordenacaoDistritalTecnico (técnicos operacionais)"""
+
+    tecnico = graphene.Field(UserGQLType)
+
+    class Meta:
+        model = CoordenacaoDistritalTecnico
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "coordenacao_id": ["exact"],
+            "tecnico_id": ["exact"],
+        }
+        connection_class = ExtendedConnection
+
+
+class CoordenacaoDistritalGQLType(DjangoObjectType):
+    """GraphQL Type for CoordenacaoDistrital"""
+
+    distrito = graphene.Field(LocationGQLType)
+    coordenador = graphene.Field(UserGQLType)
+    tecnico_administrativo = graphene.Field(UserGQLType)
+    tecnicos_operacionais = graphene.List(CoordenacaoDistritalTecnicoGQLType)
+
+    class Meta:
+        model = CoordenacaoDistrital
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "distrito_id": ["exact"],
+            "coordenador_id": ["exact"],
+            "tecnico_administrativo_id": ["exact"],
+            "ativo": ["exact"],
+        }
+        connection_class = ExtendedConnection
+
+    def resolve_tecnicos_operacionais(self, info, **kwargs):
+        return self.tecnicos_operacionais.all()
+
+
 class Query(graphene.ObjectType):
     """Root Query for PEP+ module"""
 
@@ -475,6 +518,13 @@ class Query(graphene.ObjectType):
         orderBy=graphene.List(of_type=graphene.String)
     )
 
+    # ---- Coordenação Distrital ----
+    coordenacao_distrital = graphene.relay.Node.Field(CoordenacaoDistritalGQLType)
+    coordenacoes_distritais = OrderedDjangoFilterConnectionField(
+        CoordenacaoDistritalGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
+
     # =========================================================================
     # Resolvers
     # =========================================================================
@@ -566,3 +616,8 @@ class Query(graphene.ObjectType):
         return RelatorioSupervisaoBimestral.objects.filter(validity_to__isnull=True).select_related(
             'distrito'
         )
+
+    def resolve_coordenacoes_distritais(self, info, **kwargs):
+        return CoordenacaoDistrital.objects.filter(validity_to__isnull=True).select_related(
+            'distrito', 'coordenador', 'tecnico_administrativo'
+        ).prefetch_related('tecnicos_operacionais__tecnico')

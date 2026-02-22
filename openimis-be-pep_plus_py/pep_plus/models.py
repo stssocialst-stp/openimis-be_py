@@ -924,3 +924,87 @@ class RelatorioSupervisaoBimestral(core_models.VersionedModel):
     def __str__(self):
         periodo_str = dict(self.PERIODO_CHOICES).get(self.periodo, '')
         return f"Supervisão {self.distrito.name if self.distrito else ''} - {periodo_str}/{self.ano}"
+
+
+# =============================================================================
+# COORDENAÇÃO DISTRITAL
+# =============================================================================
+
+class CoordenacaoDistrital(core_models.VersionedModel):
+    """
+    Coordenação Distrital — Parametrização dos responsáveis de cada distrito.
+
+    Regras:
+    - 1 coordenador por distrito (FK)
+    - 1 técnico administrativo por distrito (FK, opcional)
+    - N técnicos operacionais por distrito (M2M via CoordenacaoDistritalTecnico)
+    - Apenas 1 registo activo por distrito em simultâneo (validado no service)
+    """
+    id = models.AutoField(db_column='CoordenacaoDistritalID', primary_key=True)
+    uuid = models.CharField(
+        db_column='CoordenacaoDistritalUUID', max_length=36,
+        default=uuid.uuid4, unique=True
+    )
+
+    distrito = models.ForeignKey(
+        Location,
+        db_column='DistritoID',
+        on_delete=models.PROTECT,
+        related_name='coordenacoes_distritais',
+        help_text='Distrito ao qual esta coordenação pertence'
+    )
+    coordenador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        db_column='CoordenadorID',
+        on_delete=models.PROTECT,
+        related_name='coordenacoes_como_coordenador',
+        help_text='Coordenador distrital (1 por distrito)'
+    )
+    tecnico_administrativo = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        db_column='TecnicoAdministrativoID',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='coordenacoes_como_tecnico_admin',
+        help_text='Técnico administrativo (máx. 1 por distrito)'
+    )
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+    observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblCoordenacaoDistrital'
+        ordering = ['distrito']
+
+    def __str__(self):
+        return f"Coordenação {self.distrito} — {self.coordenador}"
+
+
+class CoordenacaoDistritalTecnico(models.Model):
+    """
+    Tabela intermediária — Técnicos Operacionais de uma Coordenação Distrital.
+    Um distrito pode ter vários técnicos operacionais.
+    """
+    id = models.AutoField(db_column='CoordenacaoDistritalTecnicoID', primary_key=True)
+
+    coordenacao = models.ForeignKey(
+        CoordenacaoDistrital,
+        db_column='CoordenacaoDistritalID',
+        on_delete=models.CASCADE,
+        related_name='tecnicos_operacionais'
+    )
+    tecnico = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        db_column='TecnicoID',
+        on_delete=models.PROTECT,
+        related_name='coordenacoes_como_tecnico_operacional'
+    )
+
+    class Meta:
+        managed = True
+        db_table = 'tblCoordenacaoDistritalTecnico'
+        unique_together = [['coordenacao', 'tecnico']]
+
+    def __str__(self):
+        return f"{self.coordenacao} — Técnico: {self.tecnico}"

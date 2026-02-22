@@ -19,7 +19,9 @@ from .models import (
     RelatorioDistritalBimestral,
     EncaminhamentoSessao,
     RoteiroReuniaoBimestral,
-    RelatorioSupervisaoBimestral
+    RelatorioSupervisaoBimestral,
+    CoordenacaoDistrital,
+    CoordenacaoDistritalTecnico,
 )
 
 
@@ -167,3 +169,37 @@ class RelatorioSupervisaoBimestralAdmin(admin.ModelAdmin):
     list_filter = ('periodo', 'ano', 'distrito')
     search_fields = ('distrito__name', 'observacoes')
     ordering = ('-ano', '-periodo')
+
+
+# =============================================================================
+# COORDENAÇÃO DISTRITAL
+# =============================================================================
+
+class CoordenacaoDistritalTecnicoInline(admin.TabularInline):
+    """Inline dos técnicos operacionais dentro de CoordenacaoDistrital"""
+    model = CoordenacaoDistritalTecnico
+    extra = 1
+    fields = ('tecnico',)
+    autocomplete_fields = []
+    verbose_name = 'Técnico Operacional'
+    verbose_name_plural = 'Técnicos Operacionais'
+
+
+@admin.register(CoordenacaoDistrital)
+class CoordenacaoDistritalAdmin(admin.ModelAdmin):
+    list_display = (
+        'distrito', 'coordenador', 'tecnico_administrativo',
+        'num_tecnicos_operacionais', 'ativo',
+    )
+    list_filter = ('ativo', 'distrito')
+    search_fields = (
+        'distrito__name', 'coordenador__username',
+        'tecnico_administrativo__username',
+    )
+    ordering = ('distrito',)
+    inlines = [CoordenacaoDistritalTecnicoInline]
+    raw_id_fields = ('coordenador', 'tecnico_administrativo')
+
+    def num_tecnicos_operacionais(self, obj):
+        return obj.tecnicos_operacionais.count()
+    num_tecnicos_operacionais.short_description = 'Nº Técnicos Operacionais'
