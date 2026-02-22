@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from core.services import BaseService
 from .models import (
     ModuloPEP, Escola, Classe, ClasseDisciplina, Disciplina, TipoEncaminhamento,
-    ModuloEducacional, ModuloEducacionalDisciplina,
+    Aluno, ModuloEducacional, ModuloEducacionalDisciplina,
     GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
     EncaminhamentoSessao, RoteiroReuniaoBimestral,
@@ -1396,6 +1396,170 @@ class RelatorioSupervisaoService(BaseService):
             relatorio.audit_user_id = user.id_for_audit
             relatorio.save()
             return relatorio
+
+
+# =============================================================================
+# ALUNO SERVICE
+# =============================================================================
+
+class AlunoService:
+    """
+    Service para Aluno.
+
+    Lógica de criação automática de Individual:
+    - Se individual_id fornecido → usa o Individual existente
+    - Se first_name + last_name + dob fornecidos → cria Individual primeiro,
+      depois cria o Aluno com a referência associada
+    - Apenas 1 Aluno activo por Individual (validity_to IS NULL)
+    """
+
+    @staticmethod
+    def _decode_fk(relay_id):
+        from .utils import decode_id
+        return decode_id(relay_id) if relay_id else None
+
+    @classmethod
+    def _get_or_create_individual(cls, data, user):
+        """
+        Retorna um Individual existente (por individual_id) ou cria um novo.
+        Lança ValidationError se não for possível identificar/criar o Individual.
+        """
+        from individual.models import Individual
+
+        individual_id = data.pop('individual_id', None)
+
+        if individual_id:
+            # Relay ID → UUID (Individual usa UUID como PK)
+            from .utils import decode_id
+            individual_uuid = decode_id(individual_id)
+            try:
+                return Individual.objects.get(id=individual_uuid)
+            except Individual.DoesNotExist:
+                raise ValidationError([{'message': f'Individual não encontrado: {individual_uuid}'}])
+
+        # Criar novo Individual com os dados pessoais fornecidos
+        first_name = data.pop('first_name', '').strip()
+        last_name = data.pop('last_name', '').strip()
+        dob = data.pop('dob', None)
+
+        if not first_name or not last_name or not dob:
+            raise ValidationError([{
+                'message': 'Para criar um novo Individual, são obrigatórios: '
+                           'first_name, last_name e dob (ou individual_id para ligar a existente)'
+            }])
+
+        # Usar IndividualService do openIMIS para criar o Individual
+        try:
+            from individual.services import IndividualService as IndService
+            ind_service = IndService(user)
+            individual_data = {
+                'first_name': first_name,
+                'last_name': last_name,
+                'dob': dob,
+            }
+            individual = ind_service.create(individual_data)
+            # IndividualService.create retorna a instância do modelo
+            if not isinstance(individual, Individual):
+                # Algumas versões do BaseService retornam dict com chave 'data'
+                if isinstance(individual, dict) and 'data' in individual:
+                    individual = individual['data']
+                else:
+                    raise ValidationError([{'message': 'Falha ao criar Individual'}])
+            return individual
+        except (ImportError, Exception) as exc:
+            # Fallback: criar directamente (para compatibilidade)
+            if 'IndividualService' in str(exc) or 'import' in str(exc).lower():
+                individual = Individual(
+                    first_name=first_name,
+                    last_name=last_name,
+                    dob=dob,
+                )
+                individual.save(user=user)
+                return individual
+            raise
+
+    @classmethod
+    def create(cls, data, user):
+        # Remover campos de dados pessoais antes de processar (vão para Individual)
+        individual = cls._get_or_create_individual(data, user)
+
+        # Verificar se já existe um Aluno activo para este Individual
+        if Aluno.objects.filter(individual=individual, validity_to__isnull=True).exists():
+            raise ValidationError([{
+                'message': f'Já existe um Aluno activo para este indivíduo. '
+                           f'Use updateAluno para actualizar.'
+            }])
+
+        with transaction.atomic():
+            aluno = Aluno(
+                individual=individual,
+                id_membro_crianca=data.get('id_membro_crianca'),
+                id_da_crianca=data.get('id_da_crianca'),
+                nome_encarregado=data.get('nome_encarregado'),
+                sexo=data.get('sexo'),
+                distrito_id=cls._decode_fk(data.get('distrito_id')),
+                localidade_id=cls._decode_fk(data.get('localidade_id')),
+                ponto_referencia=data.get('ponto_referencia'),
+                meio_residencia=data.get('meio_residencia'),
+                escola_id=cls._decode_fk(data.get('escola_id')),
+                escola_actual_id=cls._decode_fk(data.get('escola_actual_id')),
+                escolaridade_actual=data.get('escolaridade_actual'),
+                classe_id=cls._decode_fk(data.get('classe_id')),
+                classe_que_frequenta_id=cls._decode_fk(data.get('classe_que_frequenta_id')),
+                dados_escolares_correctos=data.get('dados_escolares_correctos'),
+                ativo=data.get('ativo', True),
+                audit_user_id=user.id_for_audit,
+            )
+            aluno.save()
+            return aluno
+
+    @classmethod
+    def update(cls, aluno_id, data, user):
+        try:
+            aluno = Aluno.objects.get(id=aluno_id, validity_to__isnull=True)
+        except Aluno.DoesNotExist:
+            raise ValidationError([{'message': 'Aluno não encontrado'}])
+
+        with transaction.atomic():
+            simple_fields = [
+                'id_membro_crianca', 'id_da_crianca', 'nome_encarregado',
+                'sexo', 'ponto_referencia', 'meio_residencia',
+                'escolaridade_actual', 'dados_escolares_correctos', 'ativo',
+            ]
+            for field in simple_fields:
+                if field in data:
+                    setattr(aluno, field, data[field])
+
+            fk_fields = [
+                ('distrito_id', 'distrito_id'),
+                ('localidade_id', 'localidade_id'),
+                ('escola_id', 'escola_id'),
+                ('escola_actual_id', 'escola_actual_id'),
+                ('classe_id', 'classe_id'),
+                ('classe_que_frequenta_id', 'classe_que_frequenta_id'),
+            ]
+            for input_key, model_attr in fk_fields:
+                if input_key in data:
+                    setattr(aluno, model_attr, cls._decode_fk(data[input_key]))
+
+            aluno.audit_user_id = user.id_for_audit
+            aluno.save()
+            return aluno
+
+    @classmethod
+    def delete(cls, aluno_id, user):
+        try:
+            aluno = Aluno.objects.get(id=aluno_id, validity_to__isnull=True)
+        except Aluno.DoesNotExist:
+            raise ValidationError([{'message': 'Aluno não encontrado'}])
+
+        with transaction.atomic():
+            from django.utils import timezone
+            aluno.validity_to = timezone.now()
+            aluno.ativo = False
+            aluno.audit_user_id = user.id_for_audit
+            aluno.save()
+            return aluno
 
 
 # =============================================================================

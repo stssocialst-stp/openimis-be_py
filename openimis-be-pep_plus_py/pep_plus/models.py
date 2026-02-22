@@ -308,6 +308,17 @@ class ModuloEducacional(core_models.VersionedModel):
         blank=True
     )
 
+    # Ligação ao perfil centralizado do Aluno (opcional para backward compat)
+    aluno = models.ForeignKey(
+        'Aluno',
+        db_column='AlunoID',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='assiduidades',
+        help_text='Perfil centralizado do aluno (criado em Registar Indivíduo)'
+    )
+
     # Observações
     observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
 
@@ -924,6 +935,124 @@ class RelatorioSupervisaoBimestral(core_models.VersionedModel):
     def __str__(self):
         periodo_str = dict(self.PERIODO_CHOICES).get(self.periodo, '')
         return f"Supervisão {self.distrito.name if self.distrito else ''} - {periodo_str}/{self.ano}"
+
+
+# =============================================================================
+# ALUNO
+# =============================================================================
+
+class Aluno(core_models.VersionedModel):
+    """
+    Aluno — Perfil centralizado de aluno/criança no PEP+.
+
+    Todo aluno é um indivíduo (FK → individual.Individual), mas nem todo
+    indivíduo é um aluno. A relação é 1-para-1 activa: apenas 1 registo
+    Aluno activo por Individual (validity_to IS NULL), permitindo histórico.
+
+    Criação automática: se o Individual não existir, o service cria-o primeiro
+    e depois cria o Aluno com a referência associada.
+
+    Campos de localização usam FKs (Distrito / Localidade) em vez do JSON livre
+    que existe em ModuloEducacional, tornando os dados estruturados e filtráveis.
+    """
+
+    SEXO_CHOICES = [
+        ('M', 'Masculino'),
+        ('F', 'Feminino'),
+        ('I', 'Indeterminado'),
+    ]
+
+    ESCOLARIDADE_CHOICES = [
+        ('EP1', 'EP1'),
+        ('EP2', 'EP2'),
+        ('ESG1', 'ESG1'),
+        ('ESG2', 'ESG2'),
+        ('ENSINO_SUPERIOR', 'Ensino Superior'),
+        ('OUTRO', 'Outro'),
+    ]
+
+    id = models.AutoField(db_column='AlunoID', primary_key=True)
+    uuid = models.CharField(
+        db_column='AlunoUUID', max_length=36,
+        default=uuid.uuid4, unique=True
+    )
+
+    # Ligação ao Individual openIMIS (o Individual é o "pai" do Aluno)
+    individual = models.ForeignKey(
+        'individual.Individual',
+        db_column='IndividualUUID',
+        on_delete=models.PROTECT,
+        related_name='alunos',
+        help_text='Indivíduo openIMIS ao qual este aluno pertence'
+    )
+
+    # Identificadores de integração (opcionais, usados para cruzamento de dados)
+    id_membro_crianca = models.CharField(
+        db_column='IdMembroCrianca', max_length=100, null=True, blank=True
+    )
+    id_da_crianca = models.CharField(
+        db_column='IdDaCrianca', max_length=100, null=True, blank=True
+    )
+    nome_encarregado = models.CharField(
+        db_column='NomeEncarregado', max_length=255, null=True, blank=True
+    )
+
+    # Sexo (não existe no Individual, fica no Aluno)
+    sexo = models.CharField(
+        db_column='Sexo', max_length=20,
+        choices=SEXO_CHOICES, null=True, blank=True
+    )
+
+    # Localização (FKs estruturadas em vez de JSON livre)
+    distrito = models.ForeignKey(
+        Location, db_column='DistritoID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='alunos_distrito'
+    )
+    localidade = models.ForeignKey(
+        Location, db_column='LocalidadeID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='alunos_localidade'
+    )
+    ponto_referencia = models.TextField(
+        db_column='PontoReferencia', null=True, blank=True
+    )
+    meio_residencia = models.CharField(
+        db_column='MeioResidencia', max_length=100, null=True, blank=True
+    )
+
+    # Dados escolares
+    escola = models.ForeignKey(
+        Escola, db_column='EscolaID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='alunos_escola'
+    )
+    escola_actual = models.ForeignKey(
+        Escola, db_column='EscolaActualID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='alunos_escola_actual'
+    )
+    escolaridade_actual = models.CharField(
+        db_column='EscolaridadeActual', max_length=100,
+        choices=ESCOLARIDADE_CHOICES, null=True, blank=True
+    )
+    classe = models.ForeignKey(
+        Classe, db_column='ClasseID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='alunos_classe'
+    )
+    classe_que_frequenta = models.ForeignKey(
+        Classe, db_column='ClasseQueFrequentaID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='alunos_classe_frequenta'
+    )
+    dados_escolares_correctos = models.BooleanField(
+        db_column='DadosEscolaresCorrectos', null=True, blank=True
+    )
+
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblAluno'
+        ordering = ['individual__first_name', 'individual__last_name']
+
+    def __str__(self):
+        return f"Aluno: {self.individual}"
 
 
 # =============================================================================

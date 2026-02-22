@@ -12,7 +12,7 @@ from location.gql_queries import LocationGQLType
 logger = logging.getLogger(__name__)
 from .models import (
     ModuloPEP, Escola, Classe, ClasseDisciplina, Disciplina, TipoEncaminhamento,
-    ModuloEducacional, ModuloEducacionalDisciplina,
+    Aluno, ModuloEducacional, ModuloEducacionalDisciplina,
     GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
     EncaminhamentoSessao, RoteiroReuniaoBimestral, RelatorioSupervisaoBimestral,
@@ -141,9 +141,59 @@ class ModuloEducacionalDisciplinaGQLType(DjangoObjectType):
 # GQL TYPES — MODELOS PRINCIPAIS
 # =============================================================================
 
+class AlunoGQLType(DjangoObjectType):
+    """
+    GraphQL Type para Aluno.
+    Perfil centralizado de aluno, ligado ao Individual openIMIS.
+    Expõe os dados de localização e escolares de forma estruturada.
+    """
+
+    distrito = graphene.Field(LocationGQLType)
+    localidade = graphene.Field(LocationGQLType)
+    escola = graphene.Field(EscolaGQLType)
+    escola_actual = graphene.Field(EscolaGQLType)
+    classe = graphene.Field(ClasseGQLType)
+    classe_que_frequenta = graphene.Field(ClasseGQLType)
+
+    # Campos do Individual expostos directamente para conveniência
+    first_name = graphene.String()
+    last_name = graphene.String()
+    dob = graphene.String()
+
+    class Meta:
+        model = Aluno
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "id_membro_crianca": ["exact", "icontains"],
+            "id_da_crianca": ["exact", "icontains"],
+            "nome_encarregado": ["exact", "icontains"],
+            "sexo": ["exact"],
+            "distrito_id": ["exact"],
+            "localidade_id": ["exact"],
+            "escola_id": ["exact"],
+            "escola_actual_id": ["exact"],
+            "escolaridade_actual": ["exact"],
+            "classe_id": ["exact"],
+            "classe_que_frequenta_id": ["exact"],
+            "dados_escolares_correctos": ["exact"],
+            "ativo": ["exact"],
+        }
+        connection_class = ExtendedConnection
+
+    def resolve_first_name(self, info, **kwargs):
+        return self.individual.first_name if self.individual_id else None
+
+    def resolve_last_name(self, info, **kwargs):
+        return self.individual.last_name if self.individual_id else None
+
+    def resolve_dob(self, info, **kwargs):
+        return str(self.individual.dob) if self.individual_id and self.individual.dob else None
+
+
 class ModuloEducacionalGQLType(DjangoObjectType):
     """GraphQL Type for Assiduidade Escolar (Educational Module)"""
 
+    aluno = graphene.Field(AlunoGQLType)
     escola = graphene.Field(EscolaGQLType)
     escola_actual = graphene.Field(EscolaGQLType)
     classe = graphene.Field(ClasseGQLType)
@@ -448,6 +498,13 @@ class Query(graphene.ObjectType):
         orderBy=graphene.List(of_type=graphene.String)
     )
 
+    # ---- Alunos ----
+    aluno = graphene.relay.Node.Field(AlunoGQLType)
+    alunos = OrderedDjangoFilterConnectionField(
+        AlunoGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
+
     # ---- Educational Modules ----
     modulo_educacional = graphene.relay.Node.Field(ModuloEducacionalGQLType)
     modulos_educacionais = OrderedDjangoFilterConnectionField(
@@ -544,9 +601,17 @@ class Query(graphene.ObjectType):
     def resolve_tipos_encaminhamento(self, info, **kwargs):
         return TipoEncaminhamento.objects.filter(validity_to__isnull=True)
 
+    def resolve_alunos(self, info, **kwargs):
+        return Aluno.objects.filter(validity_to__isnull=True).select_related(
+            'individual',
+            'distrito', 'localidade',
+            'escola', 'escola_actual',
+            'classe', 'classe_que_frequenta',
+        )
+
     def resolve_modulos_educacionais(self, info, **kwargs):
         return ModuloEducacional.objects.filter(validity_to__isnull=True).select_related(
-            'escola', 'escola_actual', 'classe', 'classe_que_frequenta'
+            'aluno', 'escola', 'escola_actual', 'classe', 'classe_que_frequenta'
         )
 
     def resolve_grupos_familiares(self, info, **kwargs):

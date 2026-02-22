@@ -9,6 +9,7 @@ from .models import (
     ClasseDisciplina,
     Disciplina,
     TipoEncaminhamento,
+    Aluno,
     ModuloEducacional,
     ModuloEducacionalDisciplina,
     GrupoFamiliar,
@@ -169,6 +170,29 @@ class RelatorioSupervisaoBimestralAdmin(admin.ModelAdmin):
     list_filter = ('periodo', 'ano', 'distrito')
     search_fields = ('distrito__name', 'observacoes')
     ordering = ('-ano', '-periodo')
+
+
+# =============================================================================
+# ALUNO
+# =============================================================================
+
+@admin.register(Aluno)
+class AlunoAdmin(admin.ModelAdmin):
+    list_display = (
+        'individual_nome', 'sexo', 'escola', 'classe',
+        'escolaridade_actual', 'distrito', 'ativo',
+    )
+    list_filter = ('sexo', 'escolaridade_actual', 'ativo', 'escola', 'classe', 'distrito')
+    search_fields = (
+        'individual__first_name', 'individual__last_name',
+        'id_membro_crianca', 'id_da_crianca', 'nome_encarregado',
+    )
+    ordering = ('individual__first_name', 'individual__last_name')
+    raw_id_fields = ('individual', 'escola', 'escola_actual', 'classe', 'classe_que_frequenta')
+
+    def individual_nome(self, obj):
+        return f"{obj.individual.first_name} {obj.individual.last_name}" if obj.individual_id else '—'
+    individual_nome.short_description = 'Nome'
 
 
 # =============================================================================

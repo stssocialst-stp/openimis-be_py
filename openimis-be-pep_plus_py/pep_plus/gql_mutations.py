@@ -9,21 +9,21 @@ from core.schema import OpenIMISMutation
 logger = logging.getLogger(__name__)
 from .models import (
     ModuloPEP, Escola, Classe, Disciplina, TipoEncaminhamento,
-    ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
+    Aluno, ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
     EncaminhamentoSessao, RoteiroReuniaoBimestral,
     CoordenacaoDistrital, CoordenacaoDistritalTecnico
 )
 from .gql_queries import (
     ModuloPEPGQLType, EscolaGQLType, ClasseGQLType, DisciplinaGQLType, TipoEncaminhamentoGQLType,
-    ModuloEducacionalGQLType, GrupoFamiliarGQLType, SessaoPEPGQLType,
+    AlunoGQLType, ModuloEducacionalGQLType, GrupoFamiliarGQLType, SessaoPEPGQLType,
     PresencaSessaoGQLType, ExecucaoSessaoGQLType, SupervisaoSessaoGQLType,
     RelatorioDistritalBimestralGQLType, EncaminhamentoSessaoGQLType,
     RoteiroReuniaoBimestralGQLType, CoordenacaoDistritalGQLType
 )
 from .services import (
     ModuloPEPService, EscolaService, ClasseService, DisciplinaService, TipoEncaminhamentoService,
-    ModuloEducacionalService, GrupoFamiliarService, SessaoPEPService,
+    AlunoService, ModuloEducacionalService, GrupoFamiliarService, SessaoPEPService,
     PresencaSessaoService, ExecucaoSessaoService, SupervisaoSessaoService,
     RelatorioDistritalService, EncaminhamentoService, RoteiroReuniaoService,
     CoordenacaoDistritalService
@@ -1489,6 +1489,127 @@ class DeleteRelatorioSupervisaoMutation(OpenIMISMutation):
 
 # =============================================================================
 # =============================================================================
+# ALUNO MUTATIONS
+# =============================================================================
+
+class CreateAlunoInput(OpenIMISMutation.Input):
+    """
+    Input para criar um Aluno.
+
+    Há duas formas de uso:
+    A) Fornecer individual_id → liga a um Individual existente no openIMIS
+    B) Fornecer first_name + last_name + dob → o service cria o Individual
+       automaticamente e depois cria o Aluno com a referência associada
+    """
+    # --- Opção A: ligar a Individual existente ---
+    individual_id = graphene.String(required=False, description="UUID Relay do Individual openIMIS existente")
+
+    # --- Opção B: dados para criar Individual novo ---
+    first_name = graphene.String(required=False, description="Primeiro nome (usado se individual_id não for fornecido)")
+    last_name = graphene.String(required=False, description="Apelido (usado se individual_id não for fornecido)")
+    dob = graphene.String(required=False, description="Data de nascimento ISO (YYYY-MM-DD)")
+
+    # --- Dados do Aluno (sempre) ---
+    id_membro_crianca = graphene.String(required=False)
+    id_da_crianca = graphene.String(required=False)
+    nome_encarregado = graphene.String(required=False)
+    sexo = graphene.String(required=False, description="M / F / I")
+
+    # Localização
+    distrito_id = graphene.String(required=False, description="ID Relay do Distrito (Location)")
+    localidade_id = graphene.String(required=False, description="ID Relay da Localidade (Location)")
+    ponto_referencia = graphene.String(required=False)
+    meio_residencia = graphene.String(required=False)
+
+    # Dados escolares
+    escola_id = graphene.String(required=False)
+    escola_actual_id = graphene.String(required=False)
+    escolaridade_actual = graphene.String(required=False)
+    classe_id = graphene.String(required=False)
+    classe_que_frequenta_id = graphene.String(required=False)
+    dados_escolares_correctos = graphene.Boolean(required=False)
+    ativo = graphene.Boolean(required=False)
+
+
+class CreateAlunoMutation(OpenIMISMutation):
+    """
+    Cria um novo Aluno.
+    Se individual_id for fornecido, liga ao Individual existente.
+    Caso contrário, cria o Individual automaticamente com first_name/last_name/dob.
+    """
+    _mutation_module = "pep_plus"
+    _mutation_class = "CreateAlunoMutation"
+
+    class Input(CreateAlunoInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            AlunoService.create(data, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+class UpdateAlunoInput(OpenIMISMutation.Input):
+    """Input para actualizar um Aluno existente"""
+    id = graphene.String(required=True)
+
+    id_membro_crianca = graphene.String(required=False)
+    id_da_crianca = graphene.String(required=False)
+    nome_encarregado = graphene.String(required=False)
+    sexo = graphene.String(required=False)
+    distrito_id = graphene.String(required=False)
+    localidade_id = graphene.String(required=False)
+    ponto_referencia = graphene.String(required=False)
+    meio_residencia = graphene.String(required=False)
+    escola_id = graphene.String(required=False)
+    escola_actual_id = graphene.String(required=False)
+    escolaridade_actual = graphene.String(required=False)
+    classe_id = graphene.String(required=False)
+    classe_que_frequenta_id = graphene.String(required=False)
+    dados_escolares_correctos = graphene.Boolean(required=False)
+    ativo = graphene.Boolean(required=False)
+
+
+class UpdateAlunoMutation(OpenIMISMutation):
+    """Actualiza um Aluno existente"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "UpdateAlunoMutation"
+
+    class Input(UpdateAlunoInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            aluno_id = decode_id(data.pop('id'))
+            AlunoService.update(aluno_id, data, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+class DeleteAlunoMutation(OpenIMISMutation):
+    """Desactiva (soft delete) um Aluno"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "DeleteAlunoMutation"
+
+    class Input(OpenIMISMutation.Input):
+        id = graphene.String(required=True)
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            aluno_id = decode_id(data.get('id'))
+            AlunoService.delete(aluno_id, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+# =============================================================================
 # COORDENAÇÃO DISTRITAL MUTATIONS
 # =============================================================================
 
@@ -1645,6 +1766,11 @@ class Mutation(graphene.ObjectType):
     create_tipo_encaminhamento = CreateTipoEncaminhamentoMutation.Field()
     update_tipo_encaminhamento = UpdateTipoEncaminhamentoMutation.Field()
     delete_tipo_encaminhamento = DeleteTipoEncaminhamentoMutation.Field()
+
+    # ---- Aluno (Registar Indivíduo/Aluno) ----
+    create_aluno = CreateAlunoMutation.Field()
+    update_aluno = UpdateAlunoMutation.Field()
+    delete_aluno = DeleteAlunoMutation.Field()
 
     # ---- Educational Module mutations ----
     create_modulo_educacional = CreateModuloEducacionalMutation.Field()
