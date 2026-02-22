@@ -25,4 +25,12 @@ pep_plus/migrations/0005_alter_presencasessao_fields.py
 pep_plus/migrations/0006_alter_execucaosessao_fields.py
 pep_plus/migrations/0007_alter_supervisaosessao_fields.py
 pep_plus/migrations/0008_add_avaliacao_execucao_metodologia.py
+pep_plus/migrations/0009_update_supervisaosessao_feedback_fields.py
+pep_plus/migrations/0010_update_roteiro_reuniao_bimestral.py
+pep_plus/migrations/0011_update_relatorio_supervisao_bimestral.py
+pep_plus/migrations/0012_add_resumo_da_agenda_field.py
+pep_plus/migrations/0013_seed_test_data.py
+pep_plus/migrations/0014_alter_moduloeducacional_structure.py
+pep_plus/migrations/0015_add_parametrizacao_tables.py
+pep_plus/migrations/0016_add_classe_table.py
 pep_plus/migrations/__init__.py

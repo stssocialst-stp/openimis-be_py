@@ -61,11 +61,11 @@ def validate_sessao_planeamento(data):
             'message': 'Distrito é obrigatório'
         })
 
-    # Módulo obrigatório
-    if not data.get('nome_modulo'):
+    # Módulo obrigatório (FK para ModuloPEP)
+    if not data.get('modulo_id'):
         errors.append({
-            'field': 'nome_modulo',
-            'message': 'Nome do módulo é obrigatório'
+            'field': 'modulo_id',
+            'message': 'Módulo PEP é obrigatório'
         })
 
     # Dia da semana obrigatório

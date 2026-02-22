@@ -3,7 +3,14 @@ Django Admin configuration for PEP+ module
 """
 from django.contrib import admin
 from .models import (
+    ModuloPEP,
+    Escola,
+    Classe,
+    ClasseDisciplina,
+    Disciplina,
+    TipoEncaminhamento,
     ModuloEducacional,
+    ModuloEducacionalDisciplina,
     GrupoFamiliar,
     SessaoPEP,
     PresencaSessao,
@@ -14,6 +21,66 @@ from .models import (
     RoteiroReuniaoBimestral,
     RelatorioSupervisaoBimestral
 )
+
+
+# =============================================================================
+# TABELAS DE PARAMETRIZAÇÃO
+# =============================================================================
+
+@admin.register(ModuloPEP)
+class ModuloPEPAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'nome', 'ordem', 'duracao_semanas', 'ativo', 'validity_from')
+    list_filter = ('ativo',)
+    search_fields = ('codigo', 'nome')
+    ordering = ('ordem', 'codigo')
+
+
+@admin.register(Escola)
+class EscolaAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'codigo', 'nivel', 'distrito', 'ativo', 'validity_from')
+    list_filter = ('nivel', 'ativo', 'distrito')
+    search_fields = ('nome', 'codigo')
+    ordering = ('nome',)
+
+
+@admin.register(Classe)
+class ClasseAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'nome', 'nivel', 'ordem', 'ativo', 'validity_from')
+    list_filter = ('nivel', 'ativo')
+    search_fields = ('codigo', 'nome')
+    ordering = ('ordem', 'codigo')
+
+
+@admin.register(ClasseDisciplina)
+class ClasseDisciplinaAdmin(admin.ModelAdmin):
+    list_display = ('classe', 'disciplina')
+    list_filter = ('classe__nivel', 'disciplina__nivel')
+    search_fields = ('classe__nome', 'classe__codigo', 'disciplina__nome')
+    ordering = ('classe', 'disciplina')
+
+
+@admin.register(Disciplina)
+class DisciplinaAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'nivel', 'faixa_faltas_aceitaveis', 'quantidade_faltas_aceitaveis', 'ativo', 'validity_from')
+    list_filter = ('nivel', 'ativo', 'faixa_faltas_aceitaveis')
+    search_fields = ('nome',)
+    ordering = ('nivel', 'nome')
+
+
+@admin.register(TipoEncaminhamento)
+class TipoEncaminhamentoAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'nome', 'ativo', 'validity_from')
+    list_filter = ('ativo',)
+    search_fields = ('codigo', 'nome')
+    ordering = ('codigo',)
+
+
+@admin.register(ModuloEducacionalDisciplina)
+class ModuloEducacionalDisciplinaAdmin(admin.ModelAdmin):
+    list_display = ('modulo', 'disciplina', 'tipo')
+    list_filter = ('tipo', 'disciplina__nivel')
+    search_fields = ('modulo__nome', 'disciplina__nome')
+    ordering = ('modulo', 'tipo', 'disciplina')
 
 
 @admin.register(ModuloEducacional)
@@ -34,9 +101,9 @@ class GrupoFamiliarAdmin(admin.ModelAdmin):
 
 @admin.register(SessaoPEP)
 class SessaoPEPAdmin(admin.ModelAdmin):
-    list_display = ('codigo_sessao', 'nome_modulo', 'grupo_familia', 'data_planejamento', 'data_sessao', 'status', 'tem_supervisao')
-    list_filter = ('status', 'tem_supervisao', 'distrito', 'data_sessao', 'data_planejamento')
-    search_fields = ('codigo_sessao', 'nome_modulo')
+    list_display = ('codigo_sessao', 'modulo', 'grupo_familia', 'data_planejamento', 'data_sessao', 'status', 'tem_supervisao')
+    list_filter = ('status', 'tem_supervisao', 'distrito', 'data_sessao', 'data_planejamento', 'modulo')
+    search_fields = ('codigo_sessao', 'modulo__nome', 'modulo__codigo')
     date_hierarchy = 'data_sessao'
     ordering = ('-data_sessao',)
 

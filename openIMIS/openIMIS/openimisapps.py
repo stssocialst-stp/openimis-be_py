@@ -15,8 +15,10 @@ def openimis_apps():
     OPENIMIS_CONF = load_openimis_conf()
     apps = [*map(extract_app, OPENIMIS_CONF["modules"])]
 
-    # Add PEP+ module dynamically if it exists (for development)
-    if os.path.exists('/app/openimis-be-pep_plus_py') and 'pep_plus' not in apps:
+    # Add PEP+ module dynamically if it exists (Docker path or local override via PEP_PLUS_PATH)
+    _pep_plus_local = os.environ.get('PEP_PLUS_PATH', '')
+    if (os.path.exists('/app/openimis-be-pep_plus_py') or (_pep_plus_local and os.path.exists(_pep_plus_local))) \
+            and 'pep_plus' not in apps:
         apps.append('pep_plus')
 
     return apps
@@ -36,7 +38,7 @@ def get_locale_folders():
             with resources.path(mod_name, "__init__.py") as path:
                 apps.append(path.parent.parent)
         except ModuleNotFoundError:
-            raise logger.error(f"Module \"{mod_name}\" not found.")
+            logger.warning(f"Module \"{mod_name}\" not found — skipping locale folder.")
 
     for topdir in ["."] + apps:
         for dirpath, dirnames, filenames in os.walk(topdir, topdown=True):

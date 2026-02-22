@@ -659,8 +659,10 @@ PASSWORD_SYMBOLS = int(os.getenv('PASSWORD_SYMBOLS', 1))
 
 IS_UNIT_TEST_ENV = 'test' in sys.argv
 
-# Add PEP+ module for development (module is installed via entrypoint.sh)
-if os.path.exists('/app/openimis-be-pep_plus_py') and 'pep_plus' not in INSTALLED_APPS:
+# Add PEP+ module for development (Docker path or local override via PEP_PLUS_PATH)
+_pep_plus_local = os.environ.get('PEP_PLUS_PATH', '')
+if (os.path.exists('/app/openimis-be-pep_plus_py') or (_pep_plus_local and os.path.exists(_pep_plus_local))) \
+        and 'pep_plus' not in INSTALLED_APPS:
     try:
         signal_binding_index = INSTALLED_APPS.index('signal_binding')
         INSTALLED_APPS.insert(signal_binding_index, 'pep_plus')

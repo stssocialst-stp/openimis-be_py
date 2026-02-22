@@ -9,10 +9,219 @@ from core import models as core_models
 from location.models import Location
 
 
+# =============================================================================
+# TABELAS DE PARAMETRIZAÇÃO (Lookup Tables)
+# =============================================================================
+
+class ModuloPEP(core_models.VersionedModel):
+    """
+    Módulo PEP - Tabela de referência para módulos educacionais do PEP+.
+    Substitui o campo texto livre 'nome_modulo' em SessaoPEP.
+    """
+    id = models.AutoField(db_column='ModuloPEPID', primary_key=True)
+    uuid = models.CharField(db_column='ModuloPEPUUID', max_length=36, default=uuid.uuid4, unique=True)
+
+    codigo = models.CharField(db_column='Codigo', max_length=50, unique=True)
+    nome = models.CharField(db_column='Nome', max_length=255)
+    descricao = models.TextField(db_column='Descricao', null=True, blank=True)
+    ordem = models.IntegerField(db_column='Ordem', null=True, blank=True)
+    duracao_semanas = models.IntegerField(db_column='DuracaoSemanas', null=True, blank=True)
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblModuloPEP'
+        ordering = ['ordem', 'codigo']
+
+    def __str__(self):
+        return f"{self.codigo} - {self.nome}"
+
+
+class Escola(core_models.VersionedModel):
+    """
+    Escola - Tabela de referência de escolas.
+    Substitui os campos texto livre 'escola' e 'escola_actual' em ModuloEducacional.
+    """
+    NIVEL_CHOICES = [
+        ('EP1', 'EP1 (Ensino Primário 1)'),
+        ('EP2', 'EP2 (Ensino Primário 2)'),
+        ('ESG1', 'ESG1 (Ensino Secundário Geral 1)'),
+        ('ESG2', 'ESG2 (Ensino Secundário Geral 2)'),
+        ('OUTRO', 'Outro'),
+    ]
+
+    id = models.AutoField(db_column='EscolaID', primary_key=True)
+    uuid = models.CharField(db_column='EscolaUUID', max_length=36, default=uuid.uuid4, unique=True)
+
+    nome = models.CharField(db_column='Nome', max_length=255)
+    codigo = models.CharField(db_column='Codigo', max_length=50, null=True, blank=True)
+    nivel = models.CharField(db_column='Nivel', max_length=50, choices=NIVEL_CHOICES, null=True, blank=True)
+    distrito = models.ForeignKey(
+        Location, db_column='DistritoID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='escolas_distrito'
+    )
+    localidade = models.ForeignKey(
+        Location, db_column='LocalidadeID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='escolas_localidade'
+    )
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblEscola'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class Classe(core_models.VersionedModel):
+    """
+    Classe - Tabela de referência de classes/anos escolares (1ª a 12ª Classe, etc.).
+    Substitui os campos com choices 'classe' e 'classe_que_frequenta' em ModuloEducacional.
+    Relaciona-se com Disciplina via M2M (ClasseDisciplina).
+    """
+    NIVEL_CHOICES = [
+        ('EP1', 'EP1 (Ensino Primário 1 — 1ª a 4ª Classe)'),
+        ('EP2', 'EP2 (Ensino Primário 2 — 5ª e 6ª Classe)'),
+        ('ESG1', 'ESG1 (Ensino Secundário Geral 1 — 7ª a 9ª Classe)'),
+        ('ESG2', 'ESG2 (Ensino Secundário Geral 2 — 10ª a 12ª Classe)'),
+        ('OUTRO', 'Outro'),
+    ]
+
+    id = models.AutoField(db_column='ClasseID', primary_key=True)
+    uuid = models.CharField(db_column='ClasseUUID', max_length=36, default=uuid.uuid4, unique=True)
+
+    nome = models.CharField(db_column='Nome', max_length=100)
+    codigo = models.CharField(db_column='Codigo', max_length=10, unique=True)
+    nivel = models.CharField(db_column='Nivel', max_length=50, choices=NIVEL_CHOICES, null=True, blank=True)
+    ordem = models.IntegerField(db_column='Ordem', null=True, blank=True)
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblClasse'
+        ordering = ['ordem', 'codigo']
+
+    def __str__(self):
+        return self.nome
+
+
+class Disciplina(core_models.VersionedModel):
+    """
+    Disciplina - Tabela de referência de disciplinas escolares.
+    Substitui os campos texto livre 'disciplinas_basicas' e 'disciplinas_avancadas' em ModuloEducacional.
+    Relaciona-se com Classe via M2M (ClasseDisciplina).
+    """
+    NIVEL_CHOICES = [
+        ('BASICA', 'Básica'),
+        ('AVANCADA', 'Avançada'),
+    ]
+
+    FAIXA_FALTAS_CHOICES = [
+        ('1-3', '1 a 3 faltas'),
+        ('4-6', '4 a 6 faltas'),
+        ('7-10', '7 a 10 faltas'),
+        ('+10', 'Mais de 10 faltas'),
+    ]
+
+    id = models.AutoField(db_column='DisciplinaID', primary_key=True)
+    uuid = models.CharField(db_column='DisciplinaUUID', max_length=36, default=uuid.uuid4, unique=True)
+
+    nome = models.CharField(db_column='Nome', max_length=255)
+    nivel = models.CharField(db_column='Nivel', max_length=20, choices=NIVEL_CHOICES)
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+
+    faixa_faltas_aceitaveis = models.CharField(
+        db_column='FaixaFaltasAceitaveis', max_length=10,
+        choices=FAIXA_FALTAS_CHOICES, null=True, blank=True,
+        help_text='Faixa de faltas aceitáveis para esta disciplina (ex: 1-3, 4-6)'
+    )
+    quantidade_faltas_aceitaveis = models.IntegerField(
+        db_column='QuantidadeFaltasAceitaveis', null=True, blank=True,
+        help_text='Número máximo absoluto de faltas aceitáveis para esta disciplina'
+    )
+
+    class Meta:
+        managed = True
+        db_table = 'tblDisciplina'
+        ordering = ['nivel', 'nome']
+
+    def __str__(self):
+        return f"{self.nome} ({self.nivel})"
+
+
+class ClasseDisciplina(models.Model):
+    """
+    Tabela intermediária M2M entre Classe e Disciplina.
+    Uma classe pode ter várias disciplinas; uma disciplina pode pertencer a várias classes.
+    """
+    id = models.AutoField(db_column='ClasseDisciplinaID', primary_key=True)
+    classe = models.ForeignKey(
+        Classe, db_column='ClasseID', on_delete=models.CASCADE,
+        related_name='disciplinas_associadas'
+    )
+    disciplina = models.ForeignKey(
+        Disciplina, db_column='DisciplinaID', on_delete=models.PROTECT,
+        related_name='classes_associadas'
+    )
+
+    class Meta:
+        managed = True
+        db_table = 'tblClasseDisciplina'
+        unique_together = [['classe', 'disciplina']]
+
+    def __str__(self):
+        return f"{self.classe} — {self.disciplina}"
+
+
+class TipoEncaminhamento(core_models.VersionedModel):
+    """
+    Tipo de Encaminhamento - Tabela de referência para tipos/instituições de encaminhamento.
+    Substitui o campo texto livre 'nome_instituicao' em PresencaSessao.
+    Adicionado também em EncaminhamentoSessao.
+    """
+    id = models.AutoField(db_column='TipoEncaminhamentoID', primary_key=True)
+    uuid = models.CharField(db_column='TipoEncaminhamentoUUID', max_length=36, default=uuid.uuid4, unique=True)
+
+    codigo = models.CharField(db_column='Codigo', max_length=50, unique=True)
+    nome = models.CharField(db_column='Nome', max_length=255)
+    descricao = models.TextField(db_column='Descricao', null=True, blank=True)
+    ativo = models.BooleanField(db_column='Ativo', default=True)
+
+    class Meta:
+        managed = True
+        db_table = 'tblTipoEncaminhamento'
+        ordering = ['codigo']
+
+    def __str__(self):
+        return f"{self.codigo} - {self.nome}"
+
+
+# =============================================================================
+# MODELOS PRINCIPAIS
+# =============================================================================
+
 class ModuloEducacional(core_models.VersionedModel):
     """
     Módulo Educacional - Registo de Assiduidade Escolar de Crianças
     """
+    # Choices para campos de parametrização simples
+    SEXO_CHOICES = [
+        ('M', 'Masculino'),
+        ('F', 'Feminino'),
+        ('I', 'Indeterminado'),
+    ]
+
+    ESCOLARIDADE_CHOICES = [
+        ('EP1', 'EP1'),
+        ('EP2', 'EP2'),
+        ('ESG1', 'ESG1'),
+        ('ESG2', 'ESG2'),
+        ('ENSINO_SUPERIOR', 'Ensino Superior'),
+        ('OUTRO', 'Outro'),
+    ]
+
     id = models.AutoField(db_column='ModuloEducacionalID', primary_key=True)
     uuid = models.CharField(db_column='ModuloEducacionalUUID', max_length=36, default=uuid.uuid4, unique=True)
 
@@ -21,15 +230,31 @@ class ModuloEducacional(core_models.VersionedModel):
     nome = models.CharField(db_column='Nome', max_length=255)
     nome_encarregado = models.CharField(db_column='NomeEncarregado', max_length=255, null=True, blank=True)
 
-    # Dados escolares
-    escola = models.CharField(db_column='Escola', max_length=255, null=True, blank=True)
-    escolaridade_actual = models.CharField(db_column='EscolaridadeActual', max_length=100, null=True, blank=True)
+    # Dados escolares — escola e escola_actual agora são FK para Escola
+    escola = models.ForeignKey(
+        Escola, db_column='EscolaID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='modulos_escola'
+    )
+    escolaridade_actual = models.CharField(
+        db_column='EscolaridadeActual', max_length=100,
+        choices=ESCOLARIDADE_CHOICES, null=True, blank=True
+    )
     data_nascimento = models.DateField(db_column='DataNascimento', null=True, blank=True)
     id_da_crianca = models.CharField(db_column='IdDaCrianca', max_length=100, null=True, blank=True)
-    sexo = models.CharField(db_column='Sexo', max_length=20, null=True, blank=True)
+    sexo = models.CharField(
+        db_column='Sexo', max_length=20,
+        choices=SEXO_CHOICES, null=True, blank=True
+    )
     dados_escolar_correctos = models.BooleanField(db_column='DadosEscolarCorrectos', null=True, blank=True)
-    escola_actual = models.CharField(db_column='EscolaActual', max_length=255, null=True, blank=True)
-    classe = models.CharField(db_column='Classe', max_length=50, null=True, blank=True)
+    escola_actual = models.ForeignKey(
+        Escola, db_column='EscolaActualID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='modulos_escola_actual'
+    )
+    # classe e classe_que_frequenta agora são FK para tabela Classe
+    classe = models.ForeignKey(
+        Classe, db_column='ClasseID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='modulos_classe'
+    )
     idade = models.IntegerField(db_column='Idade', null=True, blank=True)
     dados_escolares_correctos = models.BooleanField(db_column='DadosEscolaresCorrectos', null=True, blank=True)
 
@@ -42,7 +267,10 @@ class ModuloEducacional(core_models.VersionedModel):
     )
 
     # Dados de frequência escolar
-    classe_que_frequenta = models.CharField(db_column='ClasseQueFrequenta', max_length=50, null=True, blank=True)
+    classe_que_frequenta = models.ForeignKey(
+        Classe, db_column='ClasseQueFrequentaID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='modulos_classe_que_frequenta'
+    )
 
     APROVEITAMENTO_CHOICES = [
         ('0', '0'),
@@ -80,10 +308,6 @@ class ModuloEducacional(core_models.VersionedModel):
         blank=True
     )
 
-    # Disciplinas
-    disciplinas_basicas = models.TextField(db_column='DisciplinasBasicas', null=True, blank=True)
-    disciplinas_avancadas = models.TextField(db_column='DisciplinasAvancadas', null=True, blank=True)
-
     # Observações
     observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
 
@@ -93,6 +317,36 @@ class ModuloEducacional(core_models.VersionedModel):
 
     def __str__(self):
         return f"{self.id_membro_crianca or self.id} - {self.nome}"
+
+
+class ModuloEducacionalDisciplina(models.Model):
+    """
+    Tabela intermediária M2M entre ModuloEducacional e Disciplina.
+    Substitui os campos texto livre 'disciplinas_basicas' e 'disciplinas_avancadas'.
+    """
+    TIPO_CHOICES = [
+        ('BASICA', 'Básica'),
+        ('AVANCADA', 'Avançada'),
+    ]
+
+    id = models.AutoField(db_column='ModuloEducacionalDisciplinaID', primary_key=True)
+    modulo = models.ForeignKey(
+        ModuloEducacional, db_column='ModuloEducacionalID',
+        on_delete=models.CASCADE, related_name='disciplinas_associadas'
+    )
+    disciplina = models.ForeignKey(
+        Disciplina, db_column='DisciplinaID',
+        on_delete=models.PROTECT, related_name='modulos_associados'
+    )
+    tipo = models.CharField(db_column='Tipo', max_length=20, choices=TIPO_CHOICES)
+
+    class Meta:
+        managed = True
+        db_table = 'tblModuloEducacionalDisciplina'
+        unique_together = [['modulo', 'disciplina']]
+
+    def __str__(self):
+        return f"{self.modulo} - {self.disciplina} ({self.tipo})"
 
 
 class GrupoFamiliar(core_models.VersionedModel):
@@ -152,7 +406,12 @@ class SessaoPEP(core_models.VersionedModel):
         related_name='sessoes_tecnico'
     )
     distrito = models.ForeignKey(Location, db_column='DistritoID', on_delete=models.PROTECT)
-    nome_modulo = models.CharField(db_column='NomeModulo', max_length=255, help_text='Nome do módulo educacional')
+
+    # modulo substitui nome_modulo (texto livre) por FK para tabela ModuloPEP
+    modulo = models.ForeignKey(
+        ModuloPEP, db_column='ModuloID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='sessoes'
+    )
     mes_modulo_anterior = models.CharField(db_column='MesModuloAnterior', max_length=50, null=True, blank=True)
 
     # Detalhes da sessão
@@ -211,9 +470,12 @@ class PresencaSessao(core_models.VersionedModel):
     codigo_encaminhamento = models.CharField(db_column='CodigoEncaminhamento', max_length=50,
                                             null=True, blank=True,
                                             help_text='Código de encaminhamento quando estado=ENCA')
-    nome_instituicao = models.CharField(db_column='NomeInstituicao', max_length=255,
-                                       null=True, blank=True,
-                                       help_text='Nome da instituição quando estado=ENCA')
+
+    # tipo_encaminhamento substitui nome_instituicao (texto livre) por FK para TipoEncaminhamento
+    tipo_encaminhamento = models.ForeignKey(
+        TipoEncaminhamento, db_column='TipoEncaminhamentoID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='presencas'
+    )
     observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
 
     class Meta:
@@ -400,7 +662,6 @@ class SupervisaoSessao(core_models.VersionedModel):
     )
 
     # Avaliação da execução dos passos da metodologia
-    # [{ descricao: "...", confirmacao: "Não fez/Não adequado/Adequado/Excelente/N/A" }]
     avaliacao_execucao_metodologia = models.JSONField(
         db_column='AvaliacaoExecucaoMetodologia',
         default=list,
@@ -474,52 +735,28 @@ class RelatorioDistritalBimestral(core_models.VersionedModel):
     periodo_fim = models.DateField(db_column='PeriodoFim')
 
     # Estatísticas gerais
-    numero_localidades_atendidas = models.IntegerField(db_column='NumeroLocalidadesAtendidas', default=0,
-                                                       help_text='Número de localidades atendidas no período')
-    numero_familias_atendidas = models.IntegerField(db_column='NumeroFamiliasAtendidas', default=0,
-                                                    help_text='Número total de famílias atendidas')
-    numero_tecnicos_formadores = models.IntegerField(db_column='NumeroTecnicosFormadores', default=0,
-                                                     help_text='Número de técnicos formadores')
-    numero_sessoes_conduzidas = models.IntegerField(db_column='NumeroSessoesConduzidas', default=0,
-                                                    help_text='Número de sessões efetivamente conduzidas')
-    numero_sessoes_esperadas = models.IntegerField(db_column='NumeroSessoesEsperadas', default=0,
-                                                   help_text='Número de sessões esperadas/planejadas')
-    numero_familias_presentes = models.IntegerField(db_column='NumeroFamiliasPresentes', default=0,
-                                                    help_text='Número total de famílias presentes nas sessões')
-    numero_familias_esperadas = models.IntegerField(db_column='NumeroFamiliasEsperadas', default=0,
-                                                    help_text='Número total de famílias esperadas nas sessões')
-    numero_familias_migraram = models.IntegerField(db_column='NumeroFamiliasMigraram', default=0,
-                                                   help_text='Número total de famílias que migraram')
-    numero_sessoes_perdidas = models.IntegerField(db_column='NumeroSessoesPerdidas', default=0,
-                                                  help_text='Número total de sessões perdidas')
+    numero_localidades_atendidas = models.IntegerField(db_column='NumeroLocalidadesAtendidas', default=0)
+    numero_familias_atendidas = models.IntegerField(db_column='NumeroFamiliasAtendidas', default=0)
+    numero_tecnicos_formadores = models.IntegerField(db_column='NumeroTecnicosFormadores', default=0)
+    numero_sessoes_conduzidas = models.IntegerField(db_column='NumeroSessoesConduzidas', default=0)
+    numero_sessoes_esperadas = models.IntegerField(db_column='NumeroSessoesEsperadas', default=0)
+    numero_familias_presentes = models.IntegerField(db_column='NumeroFamiliasPresentes', default=0)
+    numero_familias_esperadas = models.IntegerField(db_column='NumeroFamiliasEsperadas', default=0)
+    numero_familias_migraram = models.IntegerField(db_column='NumeroFamiliasMigraram', default=0)
+    numero_sessoes_perdidas = models.IntegerField(db_column='NumeroSessoesPerdidas', default=0)
 
     # Percentuais calculados (opcionais)
     percentual_sessoes = models.DecimalField(db_column='PercentualSessoes', max_digits=5,
-                                            decimal_places=2, default=0, blank=True,
-                                            help_text='Percentual de sessões realizadas')
+                                            decimal_places=2, default=0, blank=True)
     percentual_familias = models.DecimalField(db_column='PercentualFamilias', max_digits=5,
-                                             decimal_places=2, default=0, blank=True,
-                                             help_text='Percentual de famílias presentes')
+                                             decimal_places=2, default=0, blank=True)
     media_familia_presente = models.DecimalField(db_column='MediaFamiliaPresente', max_digits=5,
-                                                decimal_places=2, default=0, blank=True,
-                                                help_text='Média de famílias presentes por sessão')
+                                                decimal_places=2, default=0, blank=True)
     media_familia_esperada = models.DecimalField(db_column='MediaFamiliaEsperada', max_digits=5,
-                                                decimal_places=2, default=0, blank=True,
-                                                help_text='Média de famílias esperadas por sessão')
+                                                decimal_places=2, default=0, blank=True)
 
-    # Dados detalhados por técnico (JSON)
-    # Array: [{ tecnicoFormador, sessoesExecutadas, sessoesPerdidas, modulos,
-    #          familiasPresentes, familiasMigraram, naoCompareceram2Sessoes, naoCompareceram1Sessao }]
-    dados_tecnicos = models.JSONField(
-        db_column='DadosTecnicos',
-        default=list,
-        blank=True,
-        help_text='Array de objetos com dados por técnico formador'
-    )
-
-    # Dados de encaminhamentos
+    dados_tecnicos = models.JSONField(db_column='DadosTecnicos', default=list, blank=True)
     dados_encaminhamentos = models.JSONField(db_column='DadosEncaminhamentos', default=list, blank=True)
-
     observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
 
     class Meta:
@@ -546,6 +783,12 @@ class EncaminhamentoSessao(core_models.VersionedModel):
 
     codigo_encaminhamento = models.CharField(db_column='CodigoEncaminhamento', max_length=50)
     descricao = models.TextField(db_column='Descricao')
+
+    # tipo_encaminhamento — novo campo FK para TipoEncaminhamento
+    tipo_encaminhamento = models.ForeignKey(
+        TipoEncaminhamento, db_column='TipoEncaminhamentoID', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='encaminhamentos'
+    )
 
     STATUS_CHOICES = [
         ('PEND', 'Pendente'),
@@ -609,47 +852,14 @@ class RoteiroReuniaoBimestral(core_models.VersionedModel):
     )
 
     # Conteúdos da reunião
-    principais_desafios = models.TextField(
-        db_column='PrincipaisDesafios',
-        null=True,
-        blank=True,
-        help_text='Principais desafios discutidos na reunião'
-    )
-
-    oportunidades_melhoria = models.TextField(
-        db_column='OportunidadesMelhoria',
-        null=True,
-        blank=True,
-        help_text='Oportunidades de melhoria identificadas'
-    )
-
-    apreciacao_relatorios = models.TextField(
-        db_column='ApreciacaoRelatorios',
-        null=True,
-        blank=True,
-        help_text='Apreciação e análise dos relatórios apresentados'
-    )
-
-    plano_acao = models.TextField(
-        db_column='PlanoAcao',
-        null=True,
-        blank=True,
-        help_text='Plano de ação definido com responsáveis e prazos'
-    )
+    principais_desafios = models.TextField(db_column='PrincipaisDesafios', null=True, blank=True)
+    oportunidades_melhoria = models.TextField(db_column='OportunidadesMelhoria', null=True, blank=True)
+    apreciacao_relatorios = models.TextField(db_column='ApreciacaoRelatorios', null=True, blank=True)
+    plano_acao = models.TextField(db_column='PlanoAcao', null=True, blank=True)
 
     # Próxima reunião
-    proxima_reuniao = models.TextField(
-        db_column='ProximaReuniao',
-        null=True,
-        blank=True,
-        help_text='Informações sobre a próxima reunião (data, horário, local)'
-    )
-    data_proxima_reuniao = models.DateField(
-        db_column='DataProximaReuniao',
-        null=True,
-        blank=True,
-        help_text='Data da próxima reunião'
-    )
+    proxima_reuniao = models.TextField(db_column='ProximaReuniao', null=True, blank=True)
+    data_proxima_reuniao = models.DateField(db_column='DataProximaReuniao', null=True, blank=True)
 
     class Meta:
         managed = True
@@ -668,22 +878,9 @@ class RelatorioSupervisaoBimestral(core_models.VersionedModel):
     uuid = models.CharField(db_column='RelatorioSupervisaoUUID', max_length=36, default=uuid.uuid4, unique=True)
 
     # 1. Identificação
-    supervisores = models.JSONField(
-        db_column='Supervisores',
-        default=list,
-        blank=True,
-        help_text='Array de IDs dos supervisores responsáveis pelo relatório'
-    )
-    numero_sessoes = models.IntegerField(
-        db_column='NumeroSessoes',
-        default=0,
-        help_text='Quantidade total de sessões supervisionadas no bimestre'
-    )
-    numero_tecnicos_formadores = models.IntegerField(
-        db_column='NumeroTecnicosFormadores',
-        default=0,
-        help_text='Total de técnicos formadores supervisionados'
-    )
+    supervisores = models.JSONField(db_column='Supervisores', default=list, blank=True)
+    numero_sessoes = models.IntegerField(db_column='NumeroSessoes', default=0)
+    numero_tecnicos_formadores = models.IntegerField(db_column='NumeroTecnicosFormadores', default=0)
 
     # 2. Marque seu Distrito
     distrito = models.ForeignKey(
@@ -703,48 +900,20 @@ class RelatorioSupervisaoBimestral(core_models.VersionedModel):
         ('SET_OUT', 'Setembro e Outubro'),
         ('NOV_DEZ', 'Novembro e Dezembro'),
     ]
-    periodo = models.CharField(
-        db_column='Periodo',
-        max_length=10,
-        choices=PERIODO_CHOICES,
-        help_text='Período bimestral do relatório'
-    )
+    periodo = models.CharField(db_column='Periodo', max_length=10, choices=PERIODO_CHOICES)
     ano = models.IntegerField(db_column='Ano', help_text='Ano do relatório')
 
     # 4. Avaliação dos Técnicos Formadores
-    # Array: [{idDoTecnico: str, pontosPositivos: str, pontosAprimorar: str}, ...]
-    avaliacoes_tecnicos = models.JSONField(
-        db_column='AvaliacoesTecnicos',
-        default=list,
-        blank=True,
-        help_text='Array de objetos: [{idDoTecnico, pontosPositivos, pontosAprimorar}]'
-    )
+    avaliacoes_tecnicos = models.JSONField(db_column='AvaliacoesTecnicos', default=list, blank=True)
 
     # 5. Sessões do PEP+
-    # Array: [{passo: str, nota: number}, ...]
-    sessoes_pep = models.JSONField(
-        db_column='SessoesPep',
-        default=list,
-        blank=True,
-        help_text='Array de objetos: [{passo, nota}]'
-    )
+    sessoes_pep = models.JSONField(db_column='SessoesPep', default=list, blank=True)
 
     # 6. Módulos com maior dificuldade
-    # Array: [{modulo: str, selected: boolean}, ...]
-    modulos_dificuldade = models.JSONField(
-        db_column='ModulosDificuldade',
-        default=list,
-        blank=True,
-        help_text='Array de objetos: [{modulo, selected}]'
-    )
+    modulos_dificuldade = models.JSONField(db_column='ModulosDificuldade', default=list, blank=True)
 
     # 7. Observações
-    observacoes = models.TextField(
-        db_column='Observacoes',
-        null=True,
-        blank=True,
-        help_text='Observações adicionais do relatório'
-    )
+    observacoes = models.TextField(db_column='Observacoes', null=True, blank=True)
 
     class Meta:
         managed = True

@@ -11,14 +11,143 @@ from location.gql_queries import LocationGQLType
 
 logger = logging.getLogger(__name__)
 from .models import (
-    ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
+    ModuloPEP, Escola, Classe, ClasseDisciplina, Disciplina, TipoEncaminhamento,
+    ModuloEducacional, ModuloEducacionalDisciplina,
+    GrupoFamiliar, SessaoPEP, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
     EncaminhamentoSessao, RoteiroReuniaoBimestral, RelatorioSupervisaoBimestral
 )
 
 
+# =============================================================================
+# GQL TYPES — TABELAS DE PARAMETRIZAÇÃO
+# =============================================================================
+
+class ModuloPEPGQLType(DjangoObjectType):
+    """GraphQL Type for ModuloPEP (lookup table)"""
+
+    class Meta:
+        model = ModuloPEP
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "codigo": ["exact", "icontains"],
+            "nome": ["exact", "icontains"],
+            "ordem": ["exact", "lt", "lte", "gt", "gte"],
+            "ativo": ["exact"],
+        }
+        connection_class = ExtendedConnection
+
+
+class EscolaGQLType(DjangoObjectType):
+    """GraphQL Type for Escola (lookup table)"""
+
+    distrito = graphene.Field(LocationGQLType)
+    localidade = graphene.Field(LocationGQLType)
+
+    class Meta:
+        model = Escola
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "nome": ["exact", "icontains"],
+            "codigo": ["exact", "icontains"],
+            "nivel": ["exact"],
+            "distrito_id": ["exact"],
+            "localidade_id": ["exact"],
+            "ativo": ["exact"],
+        }
+        connection_class = ExtendedConnection
+
+
+class ClasseGQLType(DjangoObjectType):
+    """GraphQL Type for Classe (lookup table)"""
+
+    class Meta:
+        model = Classe
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "codigo": ["exact", "icontains"],
+            "nome": ["exact", "icontains"],
+            "nivel": ["exact"],
+            "ordem": ["exact", "lt", "lte", "gt", "gte"],
+            "ativo": ["exact"],
+        }
+        connection_class = ExtendedConnection
+
+
+class DisciplinaGQLType(DjangoObjectType):
+    """GraphQL Type for Disciplina (lookup table)"""
+
+    class Meta:
+        model = Disciplina
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "nome": ["exact", "icontains"],
+            "nivel": ["exact"],
+            "ativo": ["exact"],
+            "faixa_faltas_aceitaveis": ["exact"],
+            "quantidade_faltas_aceitaveis": ["exact", "lt", "lte", "gt", "gte"],
+        }
+        connection_class = ExtendedConnection
+
+
+class ClasseDisciplinaGQLType(DjangoObjectType):
+    """GraphQL Type for the M2M through table ClasseDisciplina"""
+
+    classe = graphene.Field(ClasseGQLType)
+    disciplina = graphene.Field(DisciplinaGQLType)
+
+    class Meta:
+        model = ClasseDisciplina
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "classe_id": ["exact"],
+            "disciplina_id": ["exact"],
+        }
+        connection_class = ExtendedConnection
+
+
+class TipoEncaminhamentoGQLType(DjangoObjectType):
+    """GraphQL Type for TipoEncaminhamento (lookup table)"""
+
+    class Meta:
+        model = TipoEncaminhamento
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "codigo": ["exact", "icontains"],
+            "nome": ["exact", "icontains"],
+            "ativo": ["exact"],
+        }
+        connection_class = ExtendedConnection
+
+
+class ModuloEducacionalDisciplinaGQLType(DjangoObjectType):
+    """GraphQL Type for the M2M through table ModuloEducacionalDisciplina"""
+
+    disciplina = graphene.Field(DisciplinaGQLType)
+
+    class Meta:
+        model = ModuloEducacionalDisciplina
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "modulo_id": ["exact"],
+            "disciplina_id": ["exact"],
+            "tipo": ["exact"],
+        }
+        connection_class = ExtendedConnection
+
+
+# =============================================================================
+# GQL TYPES — MODELOS PRINCIPAIS
+# =============================================================================
+
 class ModuloEducacionalGQLType(DjangoObjectType):
     """GraphQL Type for Assiduidade Escolar (Educational Module)"""
+
+    escola = graphene.Field(EscolaGQLType)
+    escola_actual = graphene.Field(EscolaGQLType)
+    classe = graphene.Field(ClasseGQLType)
+    classe_que_frequenta = graphene.Field(ClasseGQLType)
+    disciplinas = graphene.List(ModuloEducacionalDisciplinaGQLType)
 
     class Meta:
         model = ModuloEducacional
@@ -27,20 +156,23 @@ class ModuloEducacionalGQLType(DjangoObjectType):
             "id_membro_crianca": ["exact", "icontains"],
             "nome": ["exact", "icontains"],
             "nome_encarregado": ["exact", "icontains"],
-            "escola": ["exact", "icontains"],
-            "escolaridade_actual": ["exact", "icontains"],
+            "escola_id": ["exact"],
+            "escola_actual_id": ["exact"],
+            "escolaridade_actual": ["exact"],
             "id_da_crianca": ["exact", "icontains"],
             "sexo": ["exact"],
             "dados_escolar_correctos": ["exact"],
-            "escola_actual": ["exact", "icontains"],
-            "classe": ["exact", "icontains"],
+            "classe_id": ["exact"],
             "idade": ["exact", "lt", "lte", "gt", "gte"],
             "dados_escolares_correctos": ["exact"],
-            "classe_que_frequenta": ["exact", "icontains"],
+            "classe_que_frequenta_id": ["exact"],
             "aproveitamento_primeiro_trimestre": ["exact"],
             "faixa_de_faltas": ["exact"],
         }
         connection_class = ExtendedConnection
+
+    def resolve_disciplinas(self, info, **kwargs):
+        return self.disciplinas_associadas.filter(disciplina__validity_to__isnull=True)
 
 
 class GrupoFamiliarGQLType(DjangoObjectType):
@@ -69,6 +201,7 @@ class SessaoPEPGQLType(DjangoObjectType):
     tecnico_social = graphene.Field(UserGQLType)
     distrito = graphene.Field(LocationGQLType)
     grupo_familia = graphene.Field(GrupoFamiliarGQLType)
+    modulo = graphene.Field(ModuloPEPGQLType)
 
     class Meta:
         model = SessaoPEP
@@ -76,7 +209,7 @@ class SessaoPEPGQLType(DjangoObjectType):
         filter_fields = {
             "codigo_sessao": ["exact", "icontains"],
             "distrito_id": ["exact"],
-            "nome_modulo": ["exact", "icontains"],
+            "modulo_id": ["exact"],
             "coordenador_distrital_id": ["exact"],
             "tecnico_social_id": ["exact"],
             "grupo_familia_id": ["exact"],
@@ -93,6 +226,7 @@ class PresencaSessaoGQLType(DjangoObjectType):
     """GraphQL Type for Session Attendance"""
 
     sessao = graphene.Field(SessaoPEPGQLType)
+    tipo_encaminhamento = graphene.Field(TipoEncaminhamentoGQLType)
 
     class Meta:
         model = PresencaSessao
@@ -104,7 +238,7 @@ class PresencaSessaoGQLType(DjangoObjectType):
             "grupo_id": ["exact"],
             "estado": ["exact"],
             "codigo_encaminhamento": ["exact", "icontains"],
-            "nome_instituicao": ["exact", "icontains"],
+            "tipo_encaminhamento_id": ["exact"],
         }
         connection_class = ExtendedConnection
 
@@ -180,6 +314,7 @@ class EncaminhamentoSessaoGQLType(DjangoObjectType):
 
     sessao = graphene.Field(SessaoPEPGQLType)
     tecnico_responsavel = graphene.Field(UserGQLType)
+    tipo_encaminhamento = graphene.Field(TipoEncaminhamentoGQLType)
 
     class Meta:
         model = EncaminhamentoSessao
@@ -191,6 +326,7 @@ class EncaminhamentoSessaoGQLType(DjangoObjectType):
             "codigo_encaminhamento": ["exact", "icontains"],
             "status": ["exact"],
             "tecnico_responsavel_id": ["exact"],
+            "tipo_encaminhamento_id": ["exact"],
             "data_encaminhamento": ["exact", "lt", "lte", "gt", "gte"],
         }
         connection_class = ExtendedConnection
@@ -234,92 +370,146 @@ class RelatorioSupervisaoBimestralGQLType(DjangoObjectType):
 class Query(graphene.ObjectType):
     """Root Query for PEP+ module"""
 
-    # Educational Modules
+    # ---- Parametrização: ModuloPEP ----
+    modulo_pep = graphene.relay.Node.Field(ModuloPEPGQLType)
+    modulos_pep = OrderedDjangoFilterConnectionField(
+        ModuloPEPGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
+
+    # ---- Parametrização: Escola ----
+    escola = graphene.relay.Node.Field(EscolaGQLType)
+    escolas = OrderedDjangoFilterConnectionField(
+        EscolaGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
+
+    # ---- Parametrização: Classe ----
+    classe_parametro = graphene.relay.Node.Field(ClasseGQLType)
+    classes = OrderedDjangoFilterConnectionField(
+        ClasseGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
+
+    # ---- Parametrização: Disciplina ----
+    disciplina = graphene.relay.Node.Field(DisciplinaGQLType)
+    disciplinas = OrderedDjangoFilterConnectionField(
+        DisciplinaGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
+
+    # ---- Parametrização: TipoEncaminhamento ----
+    tipo_encaminhamento = graphene.relay.Node.Field(TipoEncaminhamentoGQLType)
+    tipos_encaminhamento = OrderedDjangoFilterConnectionField(
+        TipoEncaminhamentoGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
+
+    # ---- Educational Modules ----
     modulo_educacional = graphene.relay.Node.Field(ModuloEducacionalGQLType)
     modulos_educacionais = OrderedDjangoFilterConnectionField(
         ModuloEducacionalGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
-    # Family Groups
+    # ---- Family Groups ----
     grupo_familiar = graphene.relay.Node.Field(GrupoFamiliarGQLType)
     grupos_familiares = OrderedDjangoFilterConnectionField(
         GrupoFamiliarGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
-    # PEP Sessions
+    # ---- PEP Sessions ----
     sessao_pep = graphene.relay.Node.Field(SessaoPEPGQLType)
     sessoes_pep = OrderedDjangoFilterConnectionField(
         SessaoPEPGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
-    # Session Attendance
+    # ---- Session Attendance ----
     presenca_sessao = graphene.relay.Node.Field(PresencaSessaoGQLType)
     presencas_sessao = OrderedDjangoFilterConnectionField(
         PresencaSessaoGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
-    # Session Execution
+    # ---- Session Execution ----
     execucao_sessao = graphene.relay.Node.Field(ExecucaoSessaoGQLType)
     execucoes_sessao = OrderedDjangoFilterConnectionField(
         ExecucaoSessaoGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
-    # Session Supervision
+    # ---- Session Supervision ----
     supervisao_sessao = graphene.relay.Node.Field(SupervisaoSessaoGQLType)
     supervisoes_sessao = OrderedDjangoFilterConnectionField(
         SupervisaoSessaoGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
-    # District Reports
+    # ---- District Reports ----
     relatorio_distrital = graphene.relay.Node.Field(RelatorioDistritalBimestralGQLType)
     relatorios_distritais = OrderedDjangoFilterConnectionField(
         RelatorioDistritalBimestralGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
-    # Referrals
+    # ---- Referrals ----
     encaminhamento_sessao = graphene.relay.Node.Field(EncaminhamentoSessaoGQLType)
     encaminhamentos_sessao = OrderedDjangoFilterConnectionField(
         EncaminhamentoSessaoGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
-    # Bimonthly Meeting Agendas
+    # ---- Bimonthly Meeting Agendas ----
     roteiro_reuniao_bimestral = graphene.relay.Node.Field(RoteiroReuniaoBimestralGQLType)
     roteiros_reuniao_bimestral = OrderedDjangoFilterConnectionField(
         RoteiroReuniaoBimestralGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
-    # Bimonthly Supervision Reports
+    # ---- Bimonthly Supervision Reports ----
     relatorio_supervisao_bimestral = graphene.relay.Node.Field(RelatorioSupervisaoBimestralGQLType)
     relatorios_supervisao_bimestral = OrderedDjangoFilterConnectionField(
         RelatorioSupervisaoBimestralGQLType,
         orderBy=graphene.List(of_type=graphene.String)
     )
 
+    # =========================================================================
+    # Resolvers
+    # =========================================================================
+
+    def resolve_modulos_pep(self, info, **kwargs):
+        return ModuloPEP.objects.filter(validity_to__isnull=True)
+
+    def resolve_escolas(self, info, **kwargs):
+        return Escola.objects.filter(validity_to__isnull=True).select_related('distrito', 'localidade')
+
+    def resolve_classes(self, info, **kwargs):
+        return Classe.objects.filter(validity_to__isnull=True)
+
+    def resolve_disciplinas(self, info, **kwargs):
+        return Disciplina.objects.filter(validity_to__isnull=True)
+
+    def resolve_tipos_encaminhamento(self, info, **kwargs):
+        return TipoEncaminhamento.objects.filter(validity_to__isnull=True)
+
     def resolve_modulos_educacionais(self, info, **kwargs):
-        """Resolve educational modules query"""
-        return ModuloEducacional.objects.filter(validity_to__isnull=True)
+        return ModuloEducacional.objects.filter(validity_to__isnull=True).select_related(
+            'escola', 'escola_actual', 'classe', 'classe_que_frequenta'
+        )
 
     def resolve_grupos_familiares(self, info, **kwargs):
-        """Resolve family groups query"""
         return GrupoFamiliar.objects.filter(validity_to__isnull=True).select_related(
             'distrito', 'localidade'
         )
 
     def resolve_sessoes_pep(self, info, **kwargs):
-        """Resolve PEP sessions query"""
         queryset = SessaoPEP.objects.filter(validity_to__isnull=True).select_related(
             'coordenador_distrital',
             'tecnico_social',
             'distrito',
+            'modulo',
             'grupo_familia',
             'grupo_familia__distrito',
             'grupo_familia__localidade'
@@ -331,17 +521,16 @@ class Query(graphene.ObjectType):
         return queryset
 
     def resolve_presencas_sessao(self, info, **kwargs):
-        """Resolve session attendance query"""
         return PresencaSessao.objects.filter(validity_to__isnull=True).select_related(
             'sessao',
             'sessao__coordenador_distrital',
             'sessao__tecnico_social',
             'sessao__distrito',
-            'sessao__grupo_familia'
+            'sessao__grupo_familia',
+            'tipo_encaminhamento'
         )
 
     def resolve_execucoes_sessao(self, info, **kwargs):
-        """Resolve session execution query"""
         return ExecucaoSessao.objects.filter(validity_to__isnull=True).select_related(
             'sessao',
             'formador',
@@ -350,7 +539,6 @@ class Query(graphene.ObjectType):
         )
 
     def resolve_supervisoes_sessao(self, info, **kwargs):
-        """Resolve session supervision query"""
         return SupervisaoSessao.objects.filter(validity_to__isnull=True).select_related(
             'sessao',
             'supervisor',
@@ -360,24 +548,21 @@ class Query(graphene.ObjectType):
         )
 
     def resolve_relatorios_distritais(self, info, **kwargs):
-        """Resolve district reports query"""
         return RelatorioDistritalBimestral.objects.filter(validity_to__isnull=True)
 
     def resolve_encaminhamentos_sessao(self, info, **kwargs):
-        """Resolve referrals query"""
         return EncaminhamentoSessao.objects.filter(validity_to__isnull=True).select_related(
             'sessao',
-            'tecnico_responsavel'
+            'tecnico_responsavel',
+            'tipo_encaminhamento'
         )
 
     def resolve_roteiros_reuniao_bimestral(self, info, **kwargs):
-        """Resolve bimonthly meeting agendas query"""
         return RoteiroReuniaoBimestral.objects.filter(validity_to__isnull=True).select_related(
             'coordenador_nacional'
         )
 
     def resolve_relatorios_supervisao_bimestral(self, info, **kwargs):
-        """Resolve bimonthly supervision reports query"""
         return RelatorioSupervisaoBimestral.objects.filter(validity_to__isnull=True).select_related(
             'distrito'
         )
