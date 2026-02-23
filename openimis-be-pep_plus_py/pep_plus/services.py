@@ -427,7 +427,9 @@ class ModuloEducacionalService(BaseService):
         disciplinas_ids = data.pop('disciplinas_ids', None)
 
         with transaction.atomic():
+            from datetime import date as _date
             modulo = ModuloEducacional.objects.create(
+                ano_registo=data.get('ano_registo') or _date.today().year,
                 id_membro_crianca=data.get('id_membro_crianca'),
                 nome=data['nome'],
                 nome_encarregado=data.get('nome_encarregado'),
@@ -506,6 +508,8 @@ class ModuloEducacionalService(BaseService):
                 modulo.faixa_de_faltas = data['faixa_de_faltas']
             if 'observacoes' in data:
                 modulo.observacoes = data['observacoes']
+            if 'ano_registo' in data:
+                modulo.ano_registo = data['ano_registo']
 
             modulo.audit_user_id = user.id_for_audit
             modulo.save()

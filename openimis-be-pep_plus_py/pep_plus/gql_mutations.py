@@ -423,6 +423,8 @@ class DeleteTipoEncaminhamentoMutation(OpenIMISMutation):
 
 class CreateModuloEducacionalInput(OpenIMISMutation.Input):
     """Input for creating school attendance record (Assiduidade Escolar)"""
+    ano_registo = graphene.Int(required=False, description="Ano lectivo do registo (ex: 2026). Se omitido, usa o ano actual.")
+
     # Identificação
     id_membro_crianca = graphene.String(required=False)
     nome = graphene.String(required=True)
@@ -485,6 +487,8 @@ class CreateModuloEducacionalMutation(OpenIMISMutation):
 class UpdateModuloEducacionalInput(OpenIMISMutation.Input):
     """Input for updating school attendance record (Assiduidade Escolar)"""
     id = graphene.String(required=True)
+
+    ano_registo = graphene.Int(required=False, description="Ano lectivo do registo (ex: 2026)")
 
     # Identificação
     id_membro_crianca = graphene.String(required=False)

@@ -225,6 +225,11 @@ class ModuloEducacional(core_models.VersionedModel):
     id = models.AutoField(db_column='ModuloEducacionalID', primary_key=True)
     uuid = models.CharField(db_column='ModuloEducacionalUUID', max_length=36, default=uuid.uuid4, unique=True)
 
+    ano_registo = models.IntegerField(
+        db_column='AnoRegisto', null=True, blank=True,
+        help_text='Ano lectivo do registo (ex: 2026)'
+    )
+
     # Identificação do membro/criança
     id_membro_crianca = models.CharField(db_column='IdMembroCrianca', max_length=100, null=True, blank=True)
     nome = models.CharField(db_column='Nome', max_length=255)
