@@ -10,7 +10,8 @@ from .models import (
     ModuloPEP, Escola, Classe, ClasseDisciplina, Disciplina, TipoEncaminhamento,
     Aluno, ModuloEducacional, ModuloEducacionalDisciplina,
     GrupoFamiliar, SessaoPEP, PresencaSessao,
-    ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
+    ExecucaoSessao, SupervisaoSessao,
+    RelatorioDistritalBimestral, RelatorioDistEncaminhamento,
     EncaminhamentoSessao, RoteiroReuniaoBimestral,
     CoordenacaoDistrital, CoordenacaoDistritalTecnico
 )
@@ -1178,6 +1179,96 @@ class RelatorioDistritalService(BaseService):
         with transaction.atomic():
             relatorio.delete_history()
             return relatorio
+
+
+class RelatorioDistEncaminhamentoService:
+    """
+    Service para gestão dos encaminhamentos estruturados do RelatorioDistritalBimestral.
+
+    Garante que apenas PresencaSessao com estado='ENCA' são associadas.
+    Expõe add/remove individual e set_all (substituição em bloco).
+    """
+
+    @classmethod
+    def _get_relatorio(cls, relatorio_id):
+        try:
+            return RelatorioDistritalBimestral.objects.get(
+                id=relatorio_id, validity_to__isnull=True
+            )
+        except RelatorioDistritalBimestral.DoesNotExist:
+            raise ValidationError([{'message': 'Relatório Distrital não encontrado'}])
+
+    @classmethod
+    def _get_presenca_enca(cls, presenca_id):
+        try:
+            presenca = PresencaSessao.objects.select_related('sessao').get(
+                id=presenca_id, validity_to__isnull=True
+            )
+        except PresencaSessao.DoesNotExist:
+            raise ValidationError([{'message': f'Registo de presença não encontrado (id={presenca_id})'}])
+
+        if presenca.estado != 'ENCA':
+            raise ValidationError([{
+                'message': (
+                    f"A presença da família '{presenca.nome_familia}' "
+                    f"(código: {presenca.codigo_encaminhamento or '—'}) "
+                    f"tem estado '{presenca.estado}', mas apenas presenças com "
+                    f"estado 'ENCA' (encaminhadas) podem ser associadas ao relatório."
+                )
+            }])
+        return presenca
+
+    @classmethod
+    def add(cls, relatorio_id, presenca_id, observacoes, user):
+        """Adiciona uma PresencaSessao (ENCA) ao relatório."""
+        relatorio = cls._get_relatorio(relatorio_id)
+        presenca = cls._get_presenca_enca(presenca_id)
+
+        if RelatorioDistEncaminhamento.objects.filter(
+            relatorio=relatorio, presenca=presenca
+        ).exists():
+            raise ValidationError([{
+                'message': f"A família '{presenca.nome_familia}' já está associada a este relatório."
+            }])
+
+        RelatorioDistEncaminhamento.objects.create(
+            relatorio=relatorio,
+            presenca=presenca,
+            observacoes=observacoes,
+        )
+
+    @classmethod
+    def remove(cls, relatorio_id, presenca_id, user):
+        """Remove a ligação entre uma presença e o relatório."""
+        deleted, _ = RelatorioDistEncaminhamento.objects.filter(
+            relatorio_id=relatorio_id, presenca_id=presenca_id
+        ).delete()
+        if not deleted:
+            raise ValidationError([{
+                'message': 'Encaminhamento não encontrado neste relatório.'
+            }])
+
+    @classmethod
+    def set_all(cls, relatorio_id, presenca_ids, user):
+        """
+        Substitui em bloco todos os encaminhamentos do relatório.
+        Valida que cada presença tem estado=ENCA antes de guardar.
+        """
+        relatorio = cls._get_relatorio(relatorio_id)
+
+        # Validar todas as presenças antes de qualquer escrita
+        presencas = []
+        for pid in presenca_ids:
+            presencas.append(cls._get_presenca_enca(pid))
+
+        with transaction.atomic():
+            # Remove todos os actuais
+            RelatorioDistEncaminhamento.objects.filter(relatorio=relatorio).delete()
+            # Cria os novos
+            RelatorioDistEncaminhamento.objects.bulk_create([
+                RelatorioDistEncaminhamento(relatorio=relatorio, presenca=p)
+                for p in presencas
+            ])
 
 
 class EncaminhamentoService(BaseService):

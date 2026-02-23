@@ -18,6 +18,7 @@ from .models import (
     ExecucaoSessao,
     SupervisaoSessao,
     RelatorioDistritalBimestral,
+    RelatorioDistEncaminhamento,
     EncaminhamentoSessao,
     RoteiroReuniaoBimestral,
     RelatorioSupervisaoBimestral,
@@ -138,12 +139,45 @@ class SupervisaoSessaoAdmin(admin.ModelAdmin):
     ordering = ('-data_supervisao',)
 
 
+class RelatorioDistEncaminhamentoInline(admin.TabularInline):
+    """Inline dos encaminhamentos estruturados no Relatório Distrital"""
+    model = RelatorioDistEncaminhamento
+    extra = 0
+    fields = ('presenca', 'familia_display', 'codigo_display', 'tipo_display', 'observacoes')
+    readonly_fields = ('familia_display', 'codigo_display', 'tipo_display')
+    verbose_name = 'Família Encaminhada'
+    verbose_name_plural = 'Famílias Encaminhadas (Presenças ENCA)'
+
+    def familia_display(self, obj):
+        return obj.presenca.nome_familia if obj.presenca_id else '—'
+    familia_display.short_description = 'Família'
+
+    def codigo_display(self, obj):
+        return obj.presenca.codigo_encaminhamento if obj.presenca_id else '—'
+    codigo_display.short_description = 'Código'
+
+    def tipo_display(self, obj):
+        return str(obj.presenca.tipo_encaminhamento) if obj.presenca_id and obj.presenca.tipo_encaminhamento else '—'
+    tipo_display.short_description = 'Tipo'
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'presenca', 'presenca__tipo_encaminhamento'
+        )
+
+
 @admin.register(RelatorioDistritalBimestral)
 class RelatorioDistritalBimestralAdmin(admin.ModelAdmin):
-    list_display = ('distrito', 'periodo', 'ano', 'coordenador_distrital', 'periodo_inicio', 'periodo_fim')
+    list_display = ('distrito', 'periodo', 'ano', 'coordenador_distrital',
+                    'num_encaminhamentos', 'periodo_inicio', 'periodo_fim')
     list_filter = ('periodo', 'ano', 'distrito')
     search_fields = ('distrito__code', 'coordenador_distrital__username')
     ordering = ('-ano', '-periodo')
+    inlines = [RelatorioDistEncaminhamentoInline]
+
+    def num_encaminhamentos(self, obj):
+        return obj.encaminhamentos_estruturados.count()
+    num_encaminhamentos.short_description = 'Nº Encaminhamentos'
 
 
 @admin.register(EncaminhamentoSessao)

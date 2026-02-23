@@ -780,6 +780,50 @@ class RelatorioDistritalBimestral(core_models.VersionedModel):
         return f"Relatório {self.distrito} - {self.periodo}/{self.ano}"
 
 
+class RelatorioDistEncaminhamento(models.Model):
+    """
+    Ligação estruturada entre RelatorioDistritalBimestral e PresencaSessao encaminhadas.
+
+    Substitui o uso do campo JSON livre 'dados_encaminhamentos' para os códigos
+    de encaminhamento de famílias. Cada registo liga um relatório a uma presença
+    concreta (estado='ENCA'), preservando o código e o tipo de encaminhamento.
+
+    Regra: apenas PresencaSessao com estado='ENCA' podem ser associadas.
+    O campo dados_encaminhamentos (JSON) permanece disponível para notas livres.
+    """
+    id = models.AutoField(db_column='RelatorioDistEncaminhamentoID', primary_key=True)
+
+    relatorio = models.ForeignKey(
+        RelatorioDistritalBimestral,
+        db_column='RelatorioDistritalID',
+        on_delete=models.CASCADE,
+        related_name='encaminhamentos_estruturados',
+        help_text='Relatório Distrital Bimestral ao qual este encaminhamento pertence'
+    )
+    presenca = models.ForeignKey(
+        'PresencaSessao',
+        db_column='PresencaSessaoID',
+        on_delete=models.PROTECT,
+        related_name='relatorios_distritais',
+        help_text='Registo de presença encaminhada (estado obrigatoriamente ENCA)'
+    )
+    observacoes = models.TextField(
+        db_column='Observacoes', null=True, blank=True,
+        help_text='Notas adicionais sobre este encaminhamento no contexto do relatório'
+    )
+
+    class Meta:
+        managed = True
+        db_table = 'tblRelatorioDistEncaminhamento'
+        unique_together = [['relatorio', 'presenca']]
+
+    def __str__(self):
+        return (
+            f"{self.relatorio} → {self.presenca.nome_familia} "
+            f"({self.presenca.codigo_encaminhamento})"
+        )
+
+
 class EncaminhamentoSessao(core_models.VersionedModel):
     """
     Session Referral - Tracks referrals made during sessions

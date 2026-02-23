@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 from .models import (
     ModuloPEP, Escola, Classe, Disciplina, TipoEncaminhamento,
     Aluno, ModuloEducacional, GrupoFamiliar, SessaoPEP, PresencaSessao,
-    ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
+    ExecucaoSessao, SupervisaoSessao,
+    RelatorioDistritalBimestral, RelatorioDistEncaminhamento,
     EncaminhamentoSessao, RoteiroReuniaoBimestral,
     CoordenacaoDistrital, CoordenacaoDistritalTecnico
 )
@@ -18,7 +19,8 @@ from .gql_queries import (
     ModuloPEPGQLType, EscolaGQLType, ClasseGQLType, DisciplinaGQLType, TipoEncaminhamentoGQLType,
     AlunoGQLType, ModuloEducacionalGQLType, GrupoFamiliarGQLType, SessaoPEPGQLType,
     PresencaSessaoGQLType, ExecucaoSessaoGQLType, SupervisaoSessaoGQLType,
-    RelatorioDistritalBimestralGQLType, EncaminhamentoSessaoGQLType,
+    RelatorioDistritalBimestralGQLType, RelatorioDistEncaminhamentoGQLType,
+    EncaminhamentoSessaoGQLType,
     RoteiroReuniaoBimestralGQLType, CoordenacaoDistritalGQLType
 )
 from .services import (
@@ -26,7 +28,7 @@ from .services import (
     AlunoService, ModuloEducacionalService, GrupoFamiliarService, SessaoPEPService,
     PresencaSessaoService, ExecucaoSessaoService, SupervisaoSessaoService,
     RelatorioDistritalService, EncaminhamentoService, RoteiroReuniaoService,
-    CoordenacaoDistritalService
+    CoordenacaoDistritalService, RelatorioDistEncaminhamentoService
 )
 from .utils import convert_ids_in_session_data, decode_id
 
@@ -1489,6 +1491,96 @@ class DeleteRelatorioSupervisaoMutation(OpenIMISMutation):
 
 # =============================================================================
 # =============================================================================
+# RELATÓRIO DISTRITAL — ENCAMINHAMENTOS ESTRUTURADOS
+# =============================================================================
+
+class AddEncaminhamentoRelatorioInput(OpenIMISMutation.Input):
+    """
+    Adiciona uma PresencaSessao (estado=ENCA) a um RelatorioDistritalBimestral.
+    O código de encaminhamento, família e tipo são lidos directamente da presença.
+    """
+    relatorio_id = graphene.String(required=True, description="Relay ID do RelatorioDistritalBimestral")
+    presenca_id = graphene.String(required=True, description="Relay ID da PresencaSessao (deve ter estado=ENCA)")
+    observacoes = graphene.String(required=False, description="Notas adicionais para este encaminhamento no relatório")
+
+
+class AddEncaminhamentoRelatorioMutation(OpenIMISMutation):
+    """Adiciona uma presença encaminhada (ENCA) ao relatório distrital"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "AddEncaminhamentoRelatorioMutation"
+
+    class Input(AddEncaminhamentoRelatorioInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            relatorio_id = decode_id(data.get('relatorio_id'))
+            presenca_id = decode_id(data.get('presenca_id'))
+            RelatorioDistEncaminhamentoService.add(relatorio_id, presenca_id, data.get('observacoes'), user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+class RemoveEncaminhamentoRelatorioInput(OpenIMISMutation.Input):
+    """Remove a ligação entre uma PresencaSessao e um RelatorioDistritalBimestral"""
+    relatorio_id = graphene.String(required=True)
+    presenca_id = graphene.String(required=True)
+
+
+class RemoveEncaminhamentoRelatorioMutation(OpenIMISMutation):
+    """Remove uma presença encaminhada do relatório distrital"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "RemoveEncaminhamentoRelatorioMutation"
+
+    class Input(RemoveEncaminhamentoRelatorioInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            relatorio_id = decode_id(data.get('relatorio_id'))
+            presenca_id = decode_id(data.get('presenca_id'))
+            RelatorioDistEncaminhamentoService.remove(relatorio_id, presenca_id, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+class SetEncaminhamentosRelatorioInput(OpenIMISMutation.Input):
+    """
+    Substitui a lista completa de encaminhamentos de um relatório.
+    Útil para guardar a selecção de uma só vez a partir do formulário.
+    """
+    relatorio_id = graphene.String(required=True, description="Relay ID do RelatorioDistritalBimestral")
+    presencas_ids = graphene.List(
+        graphene.String, required=True,
+        description="Lista de Relay IDs de PresencaSessao (estado=ENCA) a associar. "
+                    "Remove todos os anteriores e define estes como os novos."
+    )
+
+
+class SetEncaminhamentosRelatorioMutation(OpenIMISMutation):
+    """Substitui em bloco todos os encaminhamentos de um relatório distrital"""
+    _mutation_module = "pep_plus"
+    _mutation_class = "SetEncaminhamentosRelatorioMutation"
+
+    class Input(SetEncaminhamentosRelatorioInput):
+        pass
+
+    @classmethod
+    def async_mutate(cls, user, **data):
+        try:
+            relatorio_id = decode_id(data.get('relatorio_id'))
+            presencas_ids = [decode_id(pid) for pid in (data.get('presencas_ids') or [])]
+            RelatorioDistEncaminhamentoService.set_all(relatorio_id, presencas_ids, user)
+            return None
+        except Exception as exc:
+            return [{'message': str(exc), 'detail': str(exc)}]
+
+
+# =============================================================================
 # ALUNO MUTATIONS
 # =============================================================================
 
@@ -1807,6 +1899,11 @@ class Mutation(graphene.ObjectType):
     create_relatorio_distrital = CreateRelatorioDistritalMutation.Field()
     update_relatorio_distrital = UpdateRelatorioDistritalMutation.Field()
     delete_relatorio_distrital = DeleteRelatorioDistritalMutation.Field()
+
+    # ---- Encaminhamentos estruturados do relatório distrital ----
+    add_encaminhamento_relatorio = AddEncaminhamentoRelatorioMutation.Field()
+    remove_encaminhamento_relatorio = RemoveEncaminhamentoRelatorioMutation.Field()
+    set_encaminhamentos_relatorio = SetEncaminhamentosRelatorioMutation.Field()
 
     # ---- Referral mutations ----
     create_encaminhamento = CreateEncaminhamentoMutation.Field()

@@ -14,7 +14,8 @@ from .models import (
     ModuloPEP, Escola, Classe, ClasseDisciplina, Disciplina, TipoEncaminhamento,
     Aluno, ModuloEducacional, ModuloEducacionalDisciplina,
     GrupoFamiliar, SessaoPEP, PresencaSessao,
-    ExecucaoSessao, SupervisaoSessao, RelatorioDistritalBimestral,
+    ExecucaoSessao, SupervisaoSessao,
+    RelatorioDistritalBimestral, RelatorioDistEncaminhamento,
     EncaminhamentoSessao, RoteiroReuniaoBimestral, RelatorioSupervisaoBimestral,
     CoordenacaoDistrital, CoordenacaoDistritalTecnico
 )
@@ -343,8 +344,51 @@ class SupervisaoSessaoGQLType(DjangoObjectType):
         connection_class = ExtendedConnection
 
 
+class RelatorioDistEncaminhamentoGQLType(DjangoObjectType):
+    """
+    GraphQL Type para RelatorioDistEncaminhamento.
+    Ligação estruturada entre RelatorioDistritalBimestral e PresencaSessao (estado=ENCA).
+    Expõe o código de encaminhamento, família e tipo directamente da presença.
+    """
+
+    # Campos da presença expostos directamente para conveniência do frontend
+    familia_id = graphene.String()
+    nome_familia = graphene.String()
+    codigo_encaminhamento = graphene.String()
+    tipo_encaminhamento = graphene.Field(TipoEncaminhamentoGQLType)
+    sessao_codigo = graphene.String()
+
+    class Meta:
+        model = RelatorioDistEncaminhamento
+        interfaces = (graphene.relay.Node,)
+        filter_fields = {
+            "relatorio_id": ["exact"],
+            "presenca_id": ["exact"],
+            "presenca__familia_id": ["exact", "icontains"],
+            "presenca__codigo_encaminhamento": ["exact", "icontains"],
+        }
+        connection_class = ExtendedConnection
+
+    def resolve_familia_id(self, info, **kwargs):
+        return self.presenca.familia_id if self.presenca_id else None
+
+    def resolve_nome_familia(self, info, **kwargs):
+        return self.presenca.nome_familia if self.presenca_id else None
+
+    def resolve_codigo_encaminhamento(self, info, **kwargs):
+        return self.presenca.codigo_encaminhamento if self.presenca_id else None
+
+    def resolve_tipo_encaminhamento(self, info, **kwargs):
+        return self.presenca.tipo_encaminhamento if self.presenca_id else None
+
+    def resolve_sessao_codigo(self, info, **kwargs):
+        return self.presenca.sessao.codigo_sessao if self.presenca_id else None
+
+
 class RelatorioDistritalBimestralGQLType(DjangoObjectType):
     """GraphQL Type for District Bimonthly Report"""
+
+    encaminhamentos_estruturados = graphene.List(RelatorioDistEncaminhamentoGQLType)
 
     class Meta:
         model = RelatorioDistritalBimestral
@@ -358,6 +402,11 @@ class RelatorioDistritalBimestralGQLType(DjangoObjectType):
             "periodo_fim": ["exact", "lt", "lte", "gt", "gte"],
         }
         connection_class = ExtendedConnection
+
+    def resolve_encaminhamentos_estruturados(self, info, **kwargs):
+        return self.encaminhamentos_estruturados.select_related(
+            'presenca', 'presenca__tipo_encaminhamento', 'presenca__sessao'
+        )
 
 
 class EncaminhamentoSessaoGQLType(DjangoObjectType):
@@ -554,6 +603,24 @@ class Query(graphene.ObjectType):
         orderBy=graphene.List(of_type=graphene.String)
     )
 
+    # ---- Encaminhamentos estruturados de relatório ----
+    relatorio_dist_encaminhamento = graphene.relay.Node.Field(RelatorioDistEncaminhamentoGQLType)
+    relatorio_dist_encaminhamentos = OrderedDjangoFilterConnectionField(
+        RelatorioDistEncaminhamentoGQLType,
+        orderBy=graphene.List(of_type=graphene.String)
+    )
+
+    # ---- Query auxiliar: presenças ENCA disponíveis para incluir no relatório ----
+    presencas_encaminhadas_disponiveis = OrderedDjangoFilterConnectionField(
+        PresencaSessaoGQLType,
+        distrito_id=graphene.String(required=True, description="Relay ID do Distrito"),
+        periodo_inicio=graphene.String(required=True, description="Data início ISO (YYYY-MM-DD)"),
+        periodo_fim=graphene.String(required=True, description="Data fim ISO (YYYY-MM-DD)"),
+        orderBy=graphene.List(of_type=graphene.String),
+        description="Retorna PresencaSessao com estado=ENCA do distrito no período. "
+                    "Usar para popular o selector de encaminhamentos ao criar/editar um relatório."
+    )
+
     # ---- Referrals ----
     encaminhamento_sessao = graphene.relay.Node.Field(EncaminhamentoSessaoGQLType)
     encaminhamentos_sessao = OrderedDjangoFilterConnectionField(
@@ -664,6 +731,31 @@ class Query(graphene.ObjectType):
 
     def resolve_relatorios_distritais(self, info, **kwargs):
         return RelatorioDistritalBimestral.objects.filter(validity_to__isnull=True)
+
+    def resolve_relatorio_dist_encaminhamentos(self, info, **kwargs):
+        return RelatorioDistEncaminhamento.objects.select_related(
+            'relatorio', 'presenca', 'presenca__tipo_encaminhamento', 'presenca__sessao'
+        )
+
+    def resolve_presencas_encaminhadas_disponiveis(self, info, distrito_id=None,
+                                                    periodo_inicio=None, periodo_fim=None, **kwargs):
+        from .utils import decode_id
+        from django.db.models import Q
+        import datetime
+
+        qs = PresencaSessao.objects.filter(
+            validity_to__isnull=True,
+            estado='ENCA',
+        ).select_related('sessao', 'tipo_encaminhamento')
+
+        if distrito_id:
+            qs = qs.filter(sessao__distrito_id=decode_id(distrito_id))
+        if periodo_inicio:
+            qs = qs.filter(sessao__data_sessao__gte=periodo_inicio)
+        if periodo_fim:
+            qs = qs.filter(sessao__data_sessao__lte=periodo_fim)
+
+        return qs
 
     def resolve_encaminhamentos_sessao(self, info, **kwargs):
         return EncaminhamentoSessao.objects.filter(validity_to__isnull=True).select_related(
