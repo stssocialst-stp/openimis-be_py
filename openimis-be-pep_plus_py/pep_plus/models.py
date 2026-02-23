@@ -465,6 +465,7 @@ class PresencaSessao(core_models.VersionedModel):
         ('PRES', 'Presente'),
         ('FALT', 'Faltou'),
         ('ENCA', 'Encaminhado'),
+        ('MIGR', 'Migrou'),
     ]
 
     id = models.AutoField(db_column='PresencaSessaoID', primary_key=True)
