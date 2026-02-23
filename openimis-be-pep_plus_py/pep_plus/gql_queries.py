@@ -239,7 +239,6 @@ class GrupoFamiliarGQLType(DjangoObjectType):
         filter_fields = {
             "codigo": ["exact", "icontains"],
             "nome": ["exact", "icontains"],
-            "distrito_id": ["exact"],
             "localidade_id": ["exact"],
             "ativo": ["exact"],
         }
@@ -599,6 +598,7 @@ class Query(graphene.ObjectType):
     grupo_familiar = graphene.relay.Node.Field(GrupoFamiliarGQLType)
     grupos_familiares = OrderedDjangoFilterConnectionField(
         GrupoFamiliarGQLType,
+        distrito_id=graphene.String(description="Relay ID do distrito — filtra apenas os grupos desse distrito"),
         orderBy=graphene.List(of_type=graphene.String)
     )
 
@@ -728,10 +728,14 @@ class Query(graphene.ObjectType):
             'aluno', 'escola', 'escola_actual', 'classe', 'classe_que_frequenta'
         )
 
-    def resolve_grupos_familiares(self, info, **kwargs):
-        return GrupoFamiliar.objects.filter(validity_to__isnull=True).select_related(
+    def resolve_grupos_familiares(self, info, distrito_id=None, **kwargs):
+        from .utils import decode_id
+        qs = GrupoFamiliar.objects.filter(validity_to__isnull=True).select_related(
             'distrito', 'localidade'
         )
+        if distrito_id:
+            qs = qs.filter(distrito_id=decode_id(distrito_id))
+        return qs
 
     def resolve_sessoes_pep(self, info, **kwargs):
         queryset = SessaoPEP.objects.filter(validity_to__isnull=True).select_related(
