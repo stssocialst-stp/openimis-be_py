@@ -1231,6 +1231,10 @@ class RelatorioDistritalService(BaseService):
             'tecnico_administrativo_id': (
                 coordenacao.tecnico_administrativo_id if coordenacao else None
             ),
+            'tecnico_administrativo_nome': (
+                f"{coordenacao.tecnico_administrativo.first_name} {coordenacao.tecnico_administrativo.last_name}".strip()
+                if coordenacao and coordenacao.tecnico_administrativo else None
+            ),
             **stats,
         }
 

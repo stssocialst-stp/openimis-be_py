@@ -525,6 +525,7 @@ class PreviewRelatorioDistritalType(graphene.ObjectType):
     coordenador_distrital_id = graphene.Int()
     coordenador_distrital_nome = graphene.String()
     tecnico_administrativo_id = graphene.Int()
+    tecnico_administrativo_nome = graphene.String()
 
     # Indicadores calculados a partir dos registos existentes
     numero_sessoes_conduzidas = graphene.Int()
