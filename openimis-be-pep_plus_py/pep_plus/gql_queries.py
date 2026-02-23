@@ -208,18 +208,17 @@ class ModuloEducacionalGQLType(DjangoObjectType):
             "id_membro_crianca": ["exact", "icontains"],
             "nome": ["exact", "icontains"],
             "nome_encarregado": ["exact", "icontains"],
-            "escola_id": ["exact"],
-            "escola_actual_id": ["exact"],
-            "escolaridade_actual": ["exact"],
             "id_da_crianca": ["exact", "icontains"],
+            # sexo: filtro directo por valor (M / F / I)
             "sexo": ["exact"],
+            "escolaridade_actual": ["exact"],
             "dados_escolar_correctos": ["exact"],
-            "classe_id": ["exact"],
-            "idade": ["exact", "lt", "lte", "gt", "gte"],
             "dados_escolares_correctos": ["exact"],
-            "classe_que_frequenta_id": ["exact"],
+            "idade": ["exact", "lt", "lte", "gt", "gte"],
             "aproveitamento_primeiro_trimestre": ["exact"],
             "faixa_de_faltas": ["exact"],
+            # FKs para escola, classe, aluno, distrito, localidade são tratadas
+            # via parâmetros Relay ID no campo modulos_educacionais (resolver abaixo)
         }
         connection_class = ExtendedConnection
 
@@ -592,6 +591,14 @@ class Query(graphene.ObjectType):
     modulo_educacional = graphene.relay.Node.Field(ModuloEducacionalGQLType)
     modulos_educacionais = OrderedDjangoFilterConnectionField(
         ModuloEducacionalGQLType,
+        # Filtros FK com Relay ID (tratados no resolver)
+        aluno_id=graphene.String(description="Relay ID do Aluno"),
+        escola_id=graphene.String(description="Relay ID da Escola (escola principal)"),
+        escola_actual_id=graphene.String(description="Relay ID da Escola actual"),
+        classe_id=graphene.String(description="Relay ID da Classe"),
+        classe_que_frequenta_id=graphene.String(description="Relay ID da Classe que frequenta"),
+        distrito_id=graphene.String(description="Relay ID do Distrito (via Aluno)"),
+        localidade_id=graphene.String(description="Relay ID da Localidade (via Aluno)"),
         orderBy=graphene.List(of_type=graphene.String)
     )
 
@@ -724,10 +731,36 @@ class Query(graphene.ObjectType):
             'classe', 'classe_que_frequenta',
         )
 
-    def resolve_modulos_educacionais(self, info, **kwargs):
-        return ModuloEducacional.objects.filter(validity_to__isnull=True).select_related(
-            'aluno', 'escola', 'escola_actual', 'classe', 'classe_que_frequenta'
+    def resolve_modulos_educacionais(self, info,
+                                      aluno_id=None,
+                                      escola_id=None,
+                                      escola_actual_id=None,
+                                      classe_id=None,
+                                      classe_que_frequenta_id=None,
+                                      distrito_id=None,
+                                      localidade_id=None,
+                                      **kwargs):
+        from .utils import decode_id
+        qs = ModuloEducacional.objects.filter(validity_to__isnull=True).select_related(
+            'aluno', 'aluno__individual',
+            'escola', 'escola_actual',
+            'classe', 'classe_que_frequenta',
         )
+        if aluno_id:
+            qs = qs.filter(aluno_id=decode_id(aluno_id))
+        if escola_id:
+            qs = qs.filter(escola_id=decode_id(escola_id))
+        if escola_actual_id:
+            qs = qs.filter(escola_actual_id=decode_id(escola_actual_id))
+        if classe_id:
+            qs = qs.filter(classe_id=decode_id(classe_id))
+        if classe_que_frequenta_id:
+            qs = qs.filter(classe_que_frequenta_id=decode_id(classe_que_frequenta_id))
+        if distrito_id:
+            qs = qs.filter(aluno__distrito_id=decode_id(distrito_id))
+        if localidade_id:
+            qs = qs.filter(aluno__localidade_id=decode_id(localidade_id))
+        return qs
 
     def resolve_grupos_familiares(self, info, distrito_id=None, **kwargs):
         from .utils import decode_id
