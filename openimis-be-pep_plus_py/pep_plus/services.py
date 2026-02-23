@@ -1097,9 +1097,142 @@ class RelatorioDistritalService(BaseService):
 
     OBJECT_TYPE = RelatorioDistritalBimestral
 
+    # Mapeamento de período → meses do ano
+    PERIODO_MESES = {
+        'BIM1': (1, 2),    # Jan-Fev
+        'BIM2': (3, 4),    # Mar-Abr
+        'BIM3': (5, 6),    # Mai-Jun
+        'BIM4': (7, 8),    # Jul-Ago
+        'BIM5': (9, 10),   # Set-Out
+        'BIM6': (11, 12),  # Nov-Dez
+    }
+
+    @staticmethod
+    def _get_periodo_datas(periodo, ano):
+        """Devolve (periodo_inicio, periodo_fim) como date a partir de periodo (BIM1-6) e ano."""
+        import calendar
+        from datetime import date
+        meses = RelatorioDistritalService.PERIODO_MESES.get(periodo)
+        if not meses:
+            raise ValidationError([{'message': f"Período '{periodo}' inválido. Use BIM1 a BIM6."}])
+        mes_inicio, mes_fim = meses
+        inicio = date(ano, mes_inicio, 1)
+        fim = date(ano, mes_fim, calendar.monthrange(ano, mes_fim)[1])
+        return inicio, fim
+
+    @classmethod
+    def _get_coordenacao_do_distrito(cls, distrito_id):
+        """Devolve a CoordenacaoDistrital activa do distrito, ou None se não existir."""
+        from .models import CoordenacaoDistrital
+        return CoordenacaoDistrital.objects.filter(
+            distrito_id=distrito_id,
+            ativo=True,
+            validity_to__isnull=True,
+        ).select_related('coordenador', 'tecnico_administrativo').first()
+
+    @classmethod
+    def _calcular_estatisticas(cls, distrito_id, periodo_inicio, periodo_fim):
+        """
+        Calcula automaticamente todos os indicadores do relatório a partir dos
+        registos de SessaoPEP, PresencaSessao e ExecucaoSessao existentes.
+        """
+        # Sessões do distrito no período
+        sessoes_qs = SessaoPEP.objects.filter(
+            validity_to__isnull=True,
+            distrito_id=distrito_id,
+            data_sessao__gte=periodo_inicio,
+            data_sessao__lte=periodo_fim,
+        )
+        sessoes_executadas = sessoes_qs.filter(status='EXEC')
+
+        numero_sessoes_conduzidas = sessoes_executadas.count()
+        numero_sessoes_esperadas = sessoes_qs.filter(status__in=['PLAN', 'EXEC']).count()
+        numero_sessoes_perdidas = sessoes_qs.filter(status='CANC').count()
+
+        # Localidades distintas das sessões executadas (via ExecucaoSessao.localidade)
+        numero_localidades_atendidas = ExecucaoSessao.objects.filter(
+            validity_to__isnull=True,
+            sessao__in=sessoes_executadas,
+            localidade__isnull=False,
+        ).values('localidade_id').distinct().count()
+
+        # Técnicos formadores distintos nas sessões executadas
+        numero_tecnicos_formadores = ExecucaoSessao.objects.filter(
+            validity_to__isnull=True,
+            sessao__in=sessoes_executadas,
+        ).values('formador_id').distinct().count()
+
+        # Presenças nas sessões do período
+        presencas_qs = PresencaSessao.objects.filter(
+            validity_to__isnull=True,
+            sessao__in=sessoes_qs,
+        )
+        numero_familias_presentes = presencas_qs.filter(estado='PRES').count()
+        numero_familias_esperadas = presencas_qs.count()
+        numero_familias_migraram = presencas_qs.filter(estado='MIGR').count()
+        numero_familias_atendidas = (
+            presencas_qs.filter(estado='PRES').values('familia_id').distinct().count()
+        )
+
+        # Percentuais e médias
+        percentual_sessoes = round(
+            numero_sessoes_conduzidas / numero_sessoes_esperadas * 100, 2
+        ) if numero_sessoes_esperadas > 0 else 0
+
+        percentual_familias = round(
+            numero_familias_presentes / numero_familias_esperadas * 100, 2
+        ) if numero_familias_esperadas > 0 else 0
+
+        media_familia_presente = round(
+            numero_familias_presentes / numero_sessoes_conduzidas, 2
+        ) if numero_sessoes_conduzidas > 0 else 0
+
+        media_familia_esperada = round(
+            numero_familias_esperadas / numero_sessoes_esperadas, 2
+        ) if numero_sessoes_esperadas > 0 else 0
+
+        return {
+            'numero_sessoes_conduzidas': numero_sessoes_conduzidas,
+            'numero_sessoes_esperadas': numero_sessoes_esperadas,
+            'numero_sessoes_perdidas': numero_sessoes_perdidas,
+            'numero_localidades_atendidas': numero_localidades_atendidas,
+            'numero_tecnicos_formadores': numero_tecnicos_formadores,
+            'numero_familias_presentes': numero_familias_presentes,
+            'numero_familias_esperadas': numero_familias_esperadas,
+            'numero_familias_migraram': numero_familias_migraram,
+            'numero_familias_atendidas': numero_familias_atendidas,
+            'percentual_sessoes': percentual_sessoes,
+            'percentual_familias': percentual_familias,
+            'media_familia_presente': media_familia_presente,
+            'media_familia_esperada': media_familia_esperada,
+        }
+
     @classmethod
     def generate(cls, distrito_id, periodo, ano, user):
-        pass
+        """
+        Gera o preview do relatório calculando todos os dados automaticamente.
+        Retorna um dict com todos os campos pré-preenchidos (sem guardar na BD).
+        """
+        periodo_inicio, periodo_fim = cls._get_periodo_datas(periodo, ano)
+        coordenacao = cls._get_coordenacao_do_distrito(distrito_id)
+        stats = cls._calcular_estatisticas(distrito_id, periodo_inicio, periodo_fim)
+
+        return {
+            'distrito_id': distrito_id,
+            'periodo': periodo,
+            'ano': ano,
+            'periodo_inicio': periodo_inicio,
+            'periodo_fim': periodo_fim,
+            'coordenador_distrital_id': coordenacao.coordenador_id if coordenacao else None,
+            'coordenador_distrital_nome': (
+                f"{coordenacao.coordenador.first_name} {coordenacao.coordenador.last_name}".strip()
+                if coordenacao else None
+            ),
+            'tecnico_administrativo_id': (
+                coordenacao.tecnico_administrativo_id if coordenacao else None
+            ),
+            **stats,
+        }
 
     @classmethod
     def create(cls, data, user):
@@ -1110,31 +1243,58 @@ class RelatorioDistritalService(BaseService):
         if not user.has_perms(['pep_plus.add_relatoriodistritalbimestral']):
             raise PermissionDenied("User does not have permission to create district reports")
 
+        # Calcular tudo automaticamente; os valores passados explicitamente têm precedência
+        generated = cls.generate(data['distrito_id'], data['periodo'], data['ano'], user)
+
+        coordenador_id = data.get('coordenador_distrital_id') or generated.get('coordenador_distrital_id')
+        if not coordenador_id:
+            raise ValidationError([{
+                'message': (
+                    'Não foi encontrada uma Coordenação Distrital activa para este distrito. '
+                    'Configure a Coordenação Distrital antes de criar o relatório.'
+                )
+            }])
+
         with transaction.atomic():
             relatorio = RelatorioDistritalBimestral.objects.create(
                 distrito_id=data['distrito_id'],
-                coordenador_distrital_id=data['coordenador_distrital_id'],
-                tecnico_administrativo_id=data.get('tecnico_administrativo_id'),
+                coordenador_distrital_id=coordenador_id,
+                tecnico_administrativo_id=(
+                    data.get('tecnico_administrativo_id') or generated.get('tecnico_administrativo_id')
+                ),
                 periodo=data['periodo'],
                 ano=data['ano'],
-                periodo_inicio=data['periodo_inicio'],
-                periodo_fim=data['periodo_fim'],
-                numero_localidades_atendidas=data.get('numero_localidades_atendidas', 0),
-                numero_familias_atendidas=data.get('numero_familias_atendidas', 0),
-                numero_tecnicos_formadores=data.get('numero_tecnicos_formadores', 0),
-                numero_sessoes_conduzidas=data.get('numero_sessoes_conduzidas', 0),
-                numero_sessoes_esperadas=data.get('numero_sessoes_esperadas', 0),
-                numero_familias_presentes=data.get('numero_familias_presentes', 0),
-                numero_familias_esperadas=data.get('numero_familias_esperadas', 0),
-                percentual_sessoes=data.get('percentual_sessoes', 0),
-                percentual_familias=data.get('percentual_familias', 0),
-                numero_familias_migraram=data.get('numero_familias_migraram', 0),
-                numero_sessoes_perdidas=data.get('numero_sessoes_perdidas', 0),
-                media_familia_presente=data.get('media_familia_presente', 0),
-                media_familia_esperada=data.get('media_familia_esperada', 0),
+                periodo_inicio=generated['periodo_inicio'],
+                periodo_fim=generated['periodo_fim'],
+                numero_localidades_atendidas=data.get(
+                    'numero_localidades_atendidas', generated['numero_localidades_atendidas']),
+                numero_familias_atendidas=data.get(
+                    'numero_familias_atendidas', generated['numero_familias_atendidas']),
+                numero_tecnicos_formadores=data.get(
+                    'numero_tecnicos_formadores', generated['numero_tecnicos_formadores']),
+                numero_sessoes_conduzidas=data.get(
+                    'numero_sessoes_conduzidas', generated['numero_sessoes_conduzidas']),
+                numero_sessoes_esperadas=data.get(
+                    'numero_sessoes_esperadas', generated['numero_sessoes_esperadas']),
+                numero_familias_presentes=data.get(
+                    'numero_familias_presentes', generated['numero_familias_presentes']),
+                numero_familias_esperadas=data.get(
+                    'numero_familias_esperadas', generated['numero_familias_esperadas']),
+                percentual_sessoes=data.get(
+                    'percentual_sessoes', generated['percentual_sessoes']),
+                percentual_familias=data.get(
+                    'percentual_familias', generated['percentual_familias']),
+                numero_familias_migraram=data.get(
+                    'numero_familias_migraram', generated['numero_familias_migraram']),
+                numero_sessoes_perdidas=data.get(
+                    'numero_sessoes_perdidas', generated['numero_sessoes_perdidas']),
+                media_familia_presente=data.get(
+                    'media_familia_presente', generated['media_familia_presente']),
+                media_familia_esperada=data.get(
+                    'media_familia_esperada', generated['media_familia_esperada']),
                 dados_tecnicos=data.get('dados_tecnicos', []),
                 dados_encaminhamentos=data.get('dados_encaminhamentos', []),
-                observacoes=data.get('observacoes')
+                observacoes=data.get('observacoes'),
             )
             relatorio.audit_user_id = user.id_for_audit
             relatorio.save()

@@ -509,6 +509,40 @@ class CoordenacaoDistritalGQLType(DjangoObjectType):
         return self.tecnicos_operacionais.all()
 
 
+class PreviewRelatorioDistritalType(graphene.ObjectType):
+    """
+    Pré-visualização dos dados calculados automaticamente para um Relatório Distrital.
+
+    Use a query previewRelatorioDistrital(distritoId, periodo, ano) para obter este objecto
+    e pré-preencher o formulário antes de criar o relatório com createRelatorioDistrital.
+    """
+    distrito_id = graphene.Int()
+    periodo = graphene.String()
+    ano = graphene.Int()
+    periodo_inicio = graphene.Date()
+    periodo_fim = graphene.Date()
+
+    # Coordenação (auto-preenchida a partir de CoordenacaoDistrital)
+    coordenador_distrital_id = graphene.Int()
+    coordenador_distrital_nome = graphene.String()
+    tecnico_administrativo_id = graphene.Int()
+
+    # Indicadores calculados a partir dos registos existentes
+    numero_sessoes_conduzidas = graphene.Int()
+    numero_sessoes_esperadas = graphene.Int()
+    numero_sessoes_perdidas = graphene.Int()
+    numero_localidades_atendidas = graphene.Int()
+    numero_tecnicos_formadores = graphene.Int()
+    numero_familias_presentes = graphene.Int()
+    numero_familias_esperadas = graphene.Int()
+    numero_familias_migraram = graphene.Int()
+    numero_familias_atendidas = graphene.Int()
+    percentual_sessoes = graphene.Float()
+    percentual_familias = graphene.Float()
+    media_familia_presente = graphene.Float()
+    media_familia_esperada = graphene.Float()
+
+
 class Query(graphene.ObjectType):
     """Root Query for PEP+ module"""
 
@@ -601,6 +635,19 @@ class Query(graphene.ObjectType):
     relatorios_distritais = OrderedDjangoFilterConnectionField(
         RelatorioDistritalBimestralGQLType,
         orderBy=graphene.List(of_type=graphene.String)
+    )
+
+    # ---- Preview: calcular dados do relatório sem guardar ----
+    preview_relatorio_distrital = graphene.Field(
+        PreviewRelatorioDistritalType,
+        distrito_id=graphene.String(required=True, description="Relay ID do Distrito"),
+        periodo=graphene.String(required=True, description="BIM1 a BIM6"),
+        ano=graphene.Int(required=True, description="Ano do relatório (ex: 2026)"),
+        description=(
+            "Calcula automaticamente todos os indicadores do relatório a partir dos registos "
+            "existentes (SessaoPEP, PresencaSessao, ExecucaoSessao, CoordenacaoDistrital). "
+            "Use para pré-preencher o formulário antes de criar o relatório."
+        ),
     )
 
     # ---- Encaminhamentos estruturados de relatório ----
@@ -731,6 +778,19 @@ class Query(graphene.ObjectType):
 
     def resolve_relatorios_distritais(self, info, **kwargs):
         return RelatorioDistritalBimestral.objects.filter(validity_to__isnull=True)
+
+    def resolve_preview_relatorio_distrital(self, info, distrito_id, periodo, ano, **kwargs):
+        from .utils import decode_id
+        from .services import RelatorioDistritalService
+
+        class _Preview:
+            def __init__(self, data):
+                for k, v in data.items():
+                    setattr(self, k, v)
+
+        raw_distrito_id = decode_id(distrito_id)
+        data = RelatorioDistritalService.generate(raw_distrito_id, periodo, ano, info.context.user)
+        return _Preview(data)
 
     def resolve_relatorio_dist_encaminhamentos(self, info, **kwargs):
         return RelatorioDistEncaminhamento.objects.select_related(

@@ -1139,26 +1139,32 @@ class UpdateSupervisaoSessaoMutation(OpenIMISMutation):
 # =============================================================================
 
 class CreateRelatorioDistritalInput(OpenIMISMutation.Input):
-    """Input for creating a district bimonthly report (Ferramenta 5)"""
+    """
+    Input para criar um Relatório Distrital Bimestral (Ferramenta 5).
+
+    Campos mínimos obrigatórios: distrito_id, periodo, ano.
+    Todos os restantes dados (datas do período, coordenador, indicadores estatísticos)
+    são calculados automaticamente a partir dos registos existentes (SessaoPEP, PresencaSessao).
+    Podem ser sobrescritos passando os valores explicitamente.
+    """
     distrito_id = graphene.String(required=True)
-    coordenador_distrital_id = graphene.String(required=True)
+    periodo = graphene.String(required=True, description="BIM1 a BIM6")
+    ano = graphene.Int(required=True)
+
+    # Opcionais — auto-preenchidos a partir de CoordenacaoDistrital
+    coordenador_distrital_id = graphene.String(required=False)
     tecnico_administrativo_id = graphene.String(required=False)
 
-    periodo = graphene.String(required=True)
-    ano = graphene.Int(required=True)
-    periodo_inicio = graphene.Date(required=True)
-    periodo_fim = graphene.Date(required=True)
-
-    numero_localidades_atendidas = graphene.Int(required=True)
-    numero_familias_atendidas = graphene.Int(required=True)
-    numero_tecnicos_formadores = graphene.Int(required=True)
-    numero_sessoes_conduzidas = graphene.Int(required=True)
-    numero_sessoes_esperadas = graphene.Int(required=True)
-    numero_familias_presentes = graphene.Int(required=True)
-    numero_familias_esperadas = graphene.Int(required=True)
-    numero_familias_migraram = graphene.Int(required=True)
-    numero_sessoes_perdidas = graphene.Int(required=True)
-
+    # Opcionais — auto-calculados a partir dos registos; podem ser corrigidos manualmente
+    numero_localidades_atendidas = graphene.Int(required=False)
+    numero_familias_atendidas = graphene.Int(required=False)
+    numero_tecnicos_formadores = graphene.Int(required=False)
+    numero_sessoes_conduzidas = graphene.Int(required=False)
+    numero_sessoes_esperadas = graphene.Int(required=False)
+    numero_familias_presentes = graphene.Int(required=False)
+    numero_familias_esperadas = graphene.Int(required=False)
+    numero_familias_migraram = graphene.Int(required=False)
+    numero_sessoes_perdidas = graphene.Int(required=False)
     percentual_sessoes = graphene.Float(required=False)
     percentual_familias = graphene.Float(required=False)
     media_familia_presente = graphene.Float(required=False)
@@ -1166,7 +1172,6 @@ class CreateRelatorioDistritalInput(OpenIMISMutation.Input):
 
     dados_tecnicos = graphene.JSONString(required=False)
     dados_encaminhamentos = graphene.JSONString(required=False)
-
     observacoes = graphene.String(required=False)
 
 

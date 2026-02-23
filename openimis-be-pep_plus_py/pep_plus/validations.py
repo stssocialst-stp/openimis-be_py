@@ -308,61 +308,27 @@ def validate_supervisao_sessao(data):
     return errors
 
 
+PERIODOS_VALIDOS = {'BIM1', 'BIM2', 'BIM3', 'BIM4', 'BIM5', 'BIM6'}
+
+
 def validate_relatorio_distrital(data):
     """
-    Validates district bimonthly report data (Ferramenta 5)
+    Validates district bimonthly report data (Ferramenta 5).
+    Apenas distrito_id, periodo e ano são obrigatórios — o resto é auto-calculado.
     """
     errors = []
 
-    # Distrito obrigatório
     if not data.get('distrito_id'):
-        errors.append({
-            'field': 'distrito_id',
-            'message': 'Distrito é obrigatório'
-        })
+        errors.append({'field': 'distrito_id', 'message': 'Distrito é obrigatório'})
 
-    # Coordenador distrital obrigatório
-    if not data.get('coordenador_distrital_id'):
-        errors.append({
-            'field': 'coordenador_distrital_id',
-            'message': 'Coordenador distrital é obrigatório'
-        })
+    periodo = data.get('periodo')
+    if not periodo:
+        errors.append({'field': 'periodo', 'message': 'Período é obrigatório'})
+    elif periodo not in PERIODOS_VALIDOS:
+        errors.append({'field': 'periodo', 'message': f"Período '{periodo}' inválido. Use BIM1 a BIM6."})
 
-    # Período obrigatório
-    if not data.get('periodo'):
-        errors.append({
-            'field': 'periodo',
-            'message': 'Período é obrigatório'
-        })
-
-    # Ano obrigatório
     if not data.get('ano'):
-        errors.append({
-            'field': 'ano',
-            'message': 'Ano é obrigatório'
-        })
-
-    # Período início obrigatório
-    if not data.get('periodo_inicio'):
-        errors.append({
-            'field': 'periodo_inicio',
-            'message': 'Período início é obrigatório'
-        })
-
-    # Período fim obrigatório
-    if not data.get('periodo_fim'):
-        errors.append({
-            'field': 'periodo_fim',
-            'message': 'Período fim é obrigatório'
-        })
-
-    # Validar que período fim é depois de período início
-    if data.get('periodo_inicio') and data.get('periodo_fim'):
-        if data['periodo_fim'] < data['periodo_inicio']:
-            errors.append({
-                'field': 'periodo_fim',
-                'message': 'Período fim deve ser posterior ao período início'
-            })
+        errors.append({'field': 'ano', 'message': 'Ano é obrigatório'})
 
     return errors
 
