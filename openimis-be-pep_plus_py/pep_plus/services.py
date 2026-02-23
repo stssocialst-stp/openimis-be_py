@@ -1124,6 +1124,24 @@ class RelatorioDistritalService(BaseService):
         fim = date(ano, mes_fim, calendar.monthrange(ano, mes_fim)[1])
         return inicio, fim
 
+    @staticmethod
+    def _get_user_display_name(user):
+        """
+        Devolve o nome visível de um core_User do openIMIS.
+        O core_User não tem first_name/last_name directamente —
+        esses campos estão em i_user (InteractiveUser / tblUsers)
+        como other_names e last_name.
+        """
+        if not user:
+            return None
+        try:
+            i_user = user.i_user
+            if i_user:
+                return f"{i_user.other_names or ''} {i_user.last_name or ''}".strip() or user.username
+        except Exception:
+            pass
+        return user.username or str(user.id)
+
     @classmethod
     def _get_coordenacao_do_distrito(cls, distrito_id):
         """Devolve a CoordenacaoDistrital activa do distrito, ou None se não existir."""
@@ -1132,7 +1150,10 @@ class RelatorioDistritalService(BaseService):
             distrito_id=distrito_id,
             ativo=True,
             validity_to__isnull=True,
-        ).select_related('coordenador', 'tecnico_administrativo').first()
+        ).select_related(
+            'coordenador', 'coordenador__i_user',
+            'tecnico_administrativo', 'tecnico_administrativo__i_user',
+        ).first()
 
     @classmethod
     def _calcular_estatisticas(cls, distrito_id, periodo_inicio, periodo_fim):
@@ -1229,14 +1250,14 @@ class RelatorioDistritalService(BaseService):
             'periodo_fim': periodo_fim,
             'coordenador_distrital_id': coordenacao.coordenador_id if coordenacao else None,
             'coordenador_distrital_nome': (
-                f"{coordenacao.coordenador.first_name} {coordenacao.coordenador.last_name}".strip()
+                cls._get_user_display_name(coordenacao.coordenador)
                 if coordenacao else None
             ),
             'tecnico_administrativo_id': (
                 coordenacao.tecnico_administrativo_id if coordenacao else None
             ),
             'tecnico_administrativo_nome': (
-                f"{coordenacao.tecnico_administrativo.first_name} {coordenacao.tecnico_administrativo.last_name}".strip()
+                cls._get_user_display_name(coordenacao.tecnico_administrativo)
                 if coordenacao and coordenacao.tecnico_administrativo else None
             ),
             **stats,
