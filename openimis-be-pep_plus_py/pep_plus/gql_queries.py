@@ -214,6 +214,7 @@ class ModuloEducacionalGQLType(DjangoObjectType):
             "escolaridade_actual": ["exact"],
             "dados_escolar_correctos": ["exact"],
             "dados_escolares_correctos": ["exact"],
+            "ano_registo": ["exact", "lt", "lte", "gt", "gte"],
             "idade": ["exact", "lt", "lte", "gt", "gte"],
             "aproveitamento_primeiro_trimestre": ["exact"],
             "faixa_de_faltas": ["exact"],

@@ -1887,8 +1887,8 @@ class CoordenacaoDistritalService:
                 tecnico_administrativo_id=tecnico_admin_id,
                 ativo=data.get('ativo', True),
                 observacoes=data.get('observacoes'),
-                audit_user_id=user.id_for_audit,
             )
+            coord.audit_user_id = user.id_for_audit
             coord.save()
 
             # Técnicos operacionais
