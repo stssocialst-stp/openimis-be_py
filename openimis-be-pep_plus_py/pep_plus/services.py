@@ -1728,35 +1728,47 @@ class AlunoService:
                            'first_name, last_name e dob (ou individual_id para ligar a existente)'
             }])
 
-        # Usar IndividualService do openIMIS para criar o Individual
+        # Tentar via IndividualService (preferido — trata sinais, auditoria, etc.)
+        # BaseService.create() devolve {'success': bool, ..., 'data': dict_ou_instância_ou_''}
+        # Se success=False (ex: OpenSearch offline), 'data' é '' (string vazia) — tratar explicitamente
         try:
             from individual.services import IndividualService as IndService
             ind_service = IndService(user)
-            individual_data = {
-                'first_name': first_name,
-                'last_name': last_name,
-                'dob': dob,
-            }
-            individual = ind_service.create(individual_data)
-            # IndividualService.create retorna a instância do modelo
-            if not isinstance(individual, Individual):
-                # Algumas versões do BaseService retornam dict com chave 'data'
-                if isinstance(individual, dict) and 'data' in individual:
-                    individual = individual['data']
-                else:
-                    raise ValidationError([{'message': 'Falha ao criar Individual'}])
-            return individual
-        except (ImportError, Exception) as exc:
-            # Fallback: criar directamente (para compatibilidade)
-            if 'IndividualService' in str(exc) or 'import' in str(exc).lower():
-                individual = Individual(
-                    first_name=first_name,
-                    last_name=last_name,
-                    dob=dob,
-                )
-                individual.save(user=user)
-                return individual
-            raise
+            result = ind_service.create({'first_name': first_name, 'last_name': last_name, 'dob': dob})
+
+            if isinstance(result, Individual):
+                return result
+
+            if isinstance(result, dict) and result.get('success'):
+                data_val = result.get('data')
+                if isinstance(data_val, Individual):
+                    return data_val
+                # data_val é representação dict → buscar instância pelo id
+                if isinstance(data_val, dict):
+                    ind_id = data_val.get('id') or data_val.get('uuid')
+                    if ind_id:
+                        ind = Individual.objects.filter(id=ind_id).first()
+                        if ind:
+                            return ind
+            # success=False (ex: OpenSearch offline) ou formato inesperado → fallback
+        except ImportError:
+            pass  # IndividualService não disponível
+        except Exception:
+            pass  # erro inesperado → tentar criação directa
+
+        # Fallback: criar directamente, resiliente a erros de sinais (ex: OpenSearch offline)
+        # transaction.atomic() cria savepoint; se o save() levantar exceção de um sinal
+        # post-save (não do INSERT), capturamos e verificamos se o registo existe na BD.
+        individual = Individual(first_name=first_name, last_name=last_name, dob=dob)
+        with transaction.atomic():
+            try:
+                individual.save(username=user.username)
+            except Exception:
+                # Verificar se o INSERT chegou a ser executado (individual.id é gerado em Python)
+                if not Individual.objects.filter(id=individual.id).exists():
+                    raise  # INSERT falhou — propagar o erro original
+                # INSERT OK; a excepção veio de um sinal post-save (ex: OpenSearch) — ignorar
+        return individual
 
     @classmethod
     def create(cls, data, user):
