@@ -425,6 +425,9 @@ class CreateModuloEducacionalInput(OpenIMISMutation.Input):
     """Input for creating school attendance record (Assiduidade Escolar)"""
     ano_registo = graphene.Int(required=False, description="Ano lectivo do registo (ex: 2026). Se omitido, usa o ano actual.")
 
+    # Ligação ao perfil centralizado do Aluno (opcional)
+    aluno_id = graphene.String(required=False, description="Relay ID do Aluno criado via createAluno")
+
     # Identificação
     id_membro_crianca = graphene.String(required=False)
     nome = graphene.String(required=True)
@@ -489,6 +492,9 @@ class UpdateModuloEducacionalInput(OpenIMISMutation.Input):
     id = graphene.String(required=True)
 
     ano_registo = graphene.Int(required=False, description="Ano lectivo do registo (ex: 2026)")
+
+    # Ligação ao perfil centralizado do Aluno (opcional)
+    aluno_id = graphene.String(required=False, description="Relay ID do Aluno criado via createAluno")
 
     # Identificação
     id_membro_crianca = graphene.String(required=False)

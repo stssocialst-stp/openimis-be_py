@@ -428,8 +428,13 @@ class ModuloEducacionalService(BaseService):
 
         with transaction.atomic():
             from datetime import date as _date
+            from .utils import decode_id as _decode_id
+            raw_aluno_id = data.get('aluno_id')
+            aluno_pk = _decode_id(raw_aluno_id) if raw_aluno_id else None
+
             modulo = ModuloEducacional.objects.create(
                 ano_registo=data.get('ano_registo') or _date.today().year,
+                aluno_id=aluno_pk,
                 id_membro_crianca=data.get('id_membro_crianca'),
                 nome=data['nome'],
                 nome_encarregado=data.get('nome_encarregado'),
@@ -472,6 +477,10 @@ class ModuloEducacionalService(BaseService):
         disciplinas_ids = data.pop('disciplinas_ids', None)
 
         with transaction.atomic():
+            if 'aluno_id' in data:
+                from .utils import decode_id as _decode_id
+                raw = data['aluno_id']
+                modulo.aluno_id = _decode_id(raw) if raw else None
             if 'id_membro_crianca' in data:
                 modulo.id_membro_crianca = data['id_membro_crianca']
             if 'nome' in data:
