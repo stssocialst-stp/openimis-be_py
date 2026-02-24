@@ -1800,8 +1800,8 @@ class AlunoService:
                 classe_que_frequenta_id=cls._decode_fk(data.get('classe_que_frequenta_id')),
                 dados_escolares_correctos=data.get('dados_escolares_correctos'),
                 ativo=data.get('ativo', True),
-                audit_user_id=user.id_for_audit,
             )
+            aluno.audit_user_id = user.id_for_audit
             aluno.save()
             return aluno
 
