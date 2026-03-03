@@ -1,0 +1,29 @@
+# Ensure shell scripts always have LF line endings (required for Linux containers)
+*.sh text eol=lf
+
+# Python files
+*.py text eol=lf
+
+# Other text files - use platform default
+*.md text
+*.txt text
+*.json text
+*.yml text
+*.yaml text
+*.sql text
+*.cfg text
+*.ini text
+*.env text
+
+# Docker
+Dockerfile text eol=lf
+docker-compose*.yml text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.whl binary
+*.pyc binary
