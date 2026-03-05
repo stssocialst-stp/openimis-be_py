@@ -158,7 +158,7 @@
     },
     {
       "name": "grievance_social_protection",
-      "pip": "git+https://github.com/stssocialst-stp/openimis-be-grievance_social_protection_py.git@stp-changes"
+      "pip": "git+https://github.com/stssocialst-stp/openimis-be-grievance_social_protection_py.git@develop"
     },
     {
       "name": "claim_sampling",
