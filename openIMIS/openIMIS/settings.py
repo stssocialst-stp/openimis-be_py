@@ -22,8 +22,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("MODE", "PROD") == "DEV"
-DEFAULT_LOGGING_HANDLER = os.getenv("DJANGO_LOG_HANDLER", "console")
-DEFAULT_DB_LOGGING_HANDLER = os.getenv("DJANGO_DB_LOG_HANDLER", "db-queries")
+DEFAULT_LOGGING_HANDLERS = [h.strip() for h in os.getenv("DJANGO_LOG_HANDLER", "console").split(",") if h.strip()]
+DEFAULT_DB_LOGGING_HANDLERS = [h.strip() for h in os.getenv("DJANGO_DB_LOG_HANDLER", "db-queries").split(",") if h.strip()]
 LOGGING_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "DEBUG" if DEBUG else "WARNING")
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -52,21 +52,21 @@ LOGGING = {
             "backupCount": 3,
             "formatter": "standard",
         },
-        "console": {"class": "logging.StreamHandler", "formatter": "short"},
+        "console": {"class": "logging.StreamHandler", "formatter": "standard"},
     },
     "loggers": {
         "": {
             "level": LOGGING_LEVEL,
-            "handlers": [DEFAULT_LOGGING_HANDLER],
+            "handlers": DEFAULT_LOGGING_HANDLERS,
         },
         "django.db.backends": {
             "level": LOGGING_LEVEL,
             "propagate": False,
-            "handlers": [DEFAULT_DB_LOGGING_HANDLER],
+            "handlers": DEFAULT_DB_LOGGING_HANDLERS,
         },
         "openIMIS": {
             "level": LOGGING_LEVEL,
-            "handlers": [DEFAULT_LOGGING_HANDLER],
+            "handlers": DEFAULT_LOGGING_HANDLERS,
         },
     },
 }
