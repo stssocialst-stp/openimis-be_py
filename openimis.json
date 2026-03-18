@@ -142,7 +142,7 @@
     },
     {
       "name": "payroll",
-      "pip": "git+https://github.com/dpssf-stp/openimis-be-payroll_py.git@stp-changes"
+      "pip": "git+https://github.com/stssocialst-stp/openimis-be-payroll_py.git@stp-changes"
     },
     {
       "name": "deduplication",
