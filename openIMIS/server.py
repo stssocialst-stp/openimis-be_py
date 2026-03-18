@@ -1,4 +1,6 @@
+import logging
 import socket
+from paste.translogger import TransLogger
 from waitress import serve
 
 from openIMIS.wsgi import application
@@ -29,4 +31,5 @@ if trusted_proxy:
     serve_kwargs["trusted_proxy_headers"] = trusted_proxy_headers
 
 if __name__ == '__main__':
-    serve(application, **serve_kwargs)
+    logged_app = TransLogger(application, setup_console_handler=False)
+    serve(logged_app, **serve_kwargs)

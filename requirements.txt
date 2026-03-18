@@ -29,6 +29,7 @@ reportbro-lib~=2.1.1
 reportbro-fpdf~=1.7.11
 rules
 waitress
+Paste
 wheel
 whitenoise
 django-health-check
