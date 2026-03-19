@@ -11,6 +11,8 @@ on:
 jobs:
   publish-docker-develop-image:
     runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.build.outputs.sha }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -22,10 +24,15 @@ jobs:
         username: ${{ secrets.GHCR_USER }}
         password: ${{ secrets.GHCR_TOKEN }}
     - name: Build the openimis backend Docker image
+      id: build
       run: |
-         LABEL=latest
-         docker build . --tag ghcr.io/stssocialst-stp/kenon-backend:${LABEL}
-         docker push ghcr.io/stssocialst-stp/kenon-backend:${LABEL}
+         SHA=$(echo ${{ github.sha }} | cut -c1-7)
+         docker build . \
+           --tag ghcr.io/stssocialst-stp/kenon-backend:${SHA} \
+           --tag ghcr.io/stssocialst-stp/kenon-backend:latest
+         docker push ghcr.io/stssocialst-stp/kenon-backend:${SHA}
+         docker push ghcr.io/stssocialst-stp/kenon-backend:latest
+         echo "sha=${SHA}" >> $GITHUB_OUTPUT
 
   trigger-orchestrator:
     needs: publish-docker-develop-image
@@ -37,3 +44,4 @@ jobs:
           token: ${{ secrets.GHCR_TOKEN }}
           repository: stssocialst-stp/openimis-dist_dkr
           event-type: deploy-kenon-backend
+          client-payload: '{"be_tag": "${{ needs.publish-docker-develop-image.outputs.sha }}"}'
