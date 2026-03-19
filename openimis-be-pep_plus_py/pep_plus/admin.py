@@ -261,3 +261,4 @@ class CoordenacaoDistritalAdmin(admin.ModelAdmin):
     def num_tecnicos_operacionais(self, obj):
         return obj.tecnicos_operacionais.count()
     num_tecnicos_operacionais.short_description = 'Nº Técnicos Operacionais'
+ 
