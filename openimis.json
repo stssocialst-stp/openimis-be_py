@@ -74,7 +74,7 @@
     },
     {
       "name": "contribution_plan",
-      "pip": "git+https://github.com/openimis/openimis-be-contribution_plan_py.git@release/25.04#egg=openimis-be-contribution_plan"
+      "pip": "git+https://github.com/stssocialst-stp/openimis-be-contribution_plan_py.git@release/24.04#egg=openimis-be-contribution_plan"
     },
     {
       "name": "policyholder",
