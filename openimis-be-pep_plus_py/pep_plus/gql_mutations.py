@@ -593,7 +593,6 @@ class DeleteModuloEducacionalMutation(OpenIMISMutation):
 
 class CreateGrupoFamiliarInput(OpenIMISMutation.Input):
     """Input for creating a family group"""
-    codigo = graphene.String(required=True)
     nome = graphene.String(required=True)
     distrito_id = graphene.String(required=True)
     localidade_id = graphene.String(required=False)

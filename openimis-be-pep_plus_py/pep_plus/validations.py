@@ -422,13 +422,6 @@ def validate_grupo_familiar(data):
     """
     errors = []
 
-    # Código obrigatório
-    if not data.get('codigo'):
-        errors.append({
-            'field': 'codigo',
-            'message': 'Código é obrigatório'
-        })
-
     # Nome obrigatório
     if not data.get('nome'):
         errors.append({

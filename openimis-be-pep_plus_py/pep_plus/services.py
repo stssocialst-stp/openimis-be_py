@@ -547,6 +547,36 @@ class GrupoFamiliarService(BaseService):
     OBJECT_TYPE = GrupoFamiliar
 
     @classmethod
+    def _generate_codigo(cls, distrito_id, localidade_id):
+        from location.models import Location
+
+        parts = []
+
+        try:
+            distrito = Location.objects.get(pk=distrito_id)
+            parts.append((distrito.code or distrito.name[:3]).upper())
+        except Location.DoesNotExist:
+            parts.append('XX')
+
+        if localidade_id:
+            try:
+                localidade = Location.objects.get(pk=localidade_id)
+                parts.append((localidade.code or localidade.name[:3]).upper())
+            except Location.DoesNotExist:
+                pass
+
+        prefix = '-'.join(parts)
+
+        count = GrupoFamiliar.objects.filter(
+            distrito_id=distrito_id,
+            localidade_id=localidade_id,
+            validity_to__isnull=True
+        ).count()
+        seq = str(count + 1).zfill(3)
+
+        return f"{prefix}-{seq}"
+
+    @classmethod
     def create(cls, data, user):
         errors = validate_grupo_familiar(data)
         if errors:
@@ -556,8 +586,12 @@ class GrupoFamiliarService(BaseService):
             raise PermissionDenied("User does not have permission to create family groups")
 
         with transaction.atomic():
+            codigo = cls._generate_codigo(
+                data['distrito_id'],
+                data.get('localidade_id')
+            )
             grupo = GrupoFamiliar.objects.create(
-                codigo=data['codigo'],
+                codigo=codigo,
                 nome=data['nome'],
                 distrito_id=data['distrito_id'],
                 localidade_id=data.get('localidade_id'),
