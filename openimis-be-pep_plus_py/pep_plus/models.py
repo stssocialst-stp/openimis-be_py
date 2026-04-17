@@ -904,6 +904,14 @@ class RoteiroReuniaoBimestral(core_models.VersionedModel):
         help_text='Array de IDs dos usuários participantes da reunião'
     )
 
+    # Participantes manuais (nomes inseridos manualmente, não constam na lista)
+    participantes_manuais = models.JSONField(
+        db_column='ParticipantesManuais',
+        default=list,
+        blank=True,
+        help_text='Array de nomes de participantes inseridos manualmente'
+    )
+
     # Resumo da Agenda (checklist de tópicos abordados)
     resumo_da_agenda = models.JSONField(
         db_column='ResumoDaAgenda',
