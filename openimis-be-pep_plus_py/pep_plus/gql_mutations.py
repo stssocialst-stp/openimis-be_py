@@ -1625,7 +1625,6 @@ class CreateAlunoInput(OpenIMISMutation.Input):
 
     # --- Dados do Aluno (sempre) ---
     id_membro_crianca = graphene.String(required=False)
-    id_da_crianca = graphene.String(required=False)
     nome_encarregado = graphene.String(required=False)
     sexo = graphene.String(required=False, description="M / F / I")
 

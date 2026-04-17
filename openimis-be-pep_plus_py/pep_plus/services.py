@@ -1745,6 +1745,27 @@ class AlunoService:
         return decode_id(relay_id) if relay_id else None
 
     @classmethod
+    def _generate_id_da_crianca(cls):
+        from django.utils import timezone
+        ano = timezone.now().year
+        prefix = f"CRI-{ano}-"
+        last = (
+            Aluno.objects
+            .filter(id_da_crianca__startswith=prefix, validity_to__isnull=True)
+            .order_by('-id_da_crianca')
+            .values_list('id_da_crianca', flat=True)
+            .first()
+        )
+        if last:
+            try:
+                seq = int(last.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                seq = 1
+        else:
+            seq = 1
+        return f"{prefix}{str(seq).zfill(5)}"
+
+    @classmethod
     def _get_or_create_individual(cls, data, user):
         """
         Retorna um Individual existente (por individual_id) ou cria um novo.
@@ -1832,7 +1853,7 @@ class AlunoService:
             aluno = Aluno(
                 individual=individual,
                 id_membro_crianca=data.get('id_membro_crianca'),
-                id_da_crianca=data.get('id_da_crianca'),
+                id_da_crianca=cls._generate_id_da_crianca(),
                 nome_encarregado=data.get('nome_encarregado'),
                 sexo=data.get('sexo'),
                 distrito_id=cls._decode_fk(data.get('distrito_id')),
