@@ -300,10 +300,9 @@ class ModuloEducacional(core_models.VersionedModel):
     )
 
     FAIXA_FALTAS_CHOICES = [
-        ('1-3', '1-3'),
-        ('4-6', '4-6'),
-        ('7-10', '7-10'),
-        ('+10', '+10'),
+        ('low', 'Pouca falta'),
+        ('medium', 'Falta moderada'),
+        ('high', 'Muita falta'),
     ]
     faixa_de_faltas = models.CharField(
         db_column='FaixaDeFaltas',

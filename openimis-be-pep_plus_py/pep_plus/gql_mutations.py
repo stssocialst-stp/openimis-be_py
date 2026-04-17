@@ -421,6 +421,12 @@ class DeleteTipoEncaminhamentoMutation(OpenIMISMutation):
 # EDUCATIONAL MODULE MUTATIONS
 # =============================================================================
 
+class FaixaDeFaltasEnum(graphene.Enum):
+    LOW = 'low'
+    MEDIUM = 'medium'
+    HIGH = 'high'
+
+
 class CreateModuloEducacionalInput(OpenIMISMutation.Input):
     """Input for creating school attendance record (Assiduidade Escolar)"""
     ano_registo = graphene.Int(required=False, description="Ano lectivo do registo (ex: 2026). Se omitido, usa o ano actual.")
@@ -451,7 +457,7 @@ class CreateModuloEducacionalInput(OpenIMISMutation.Input):
     # Frequência escolar
     classe_que_frequenta_id = graphene.String(required=False)  # FK para Classe (substituiu classe_que_frequenta: String)
     aproveitamento_primeiro_trimestre = graphene.String(required=False)
-    faixa_de_faltas = graphene.String(required=False)
+    faixa_de_faltas = graphene.Field(FaixaDeFaltasEnum, required=False)
 
     # Disciplinas (lista de IDs de Disciplina)
     disciplinas_ids = graphene.List(graphene.String, required=False)
@@ -519,7 +525,7 @@ class UpdateModuloEducacionalInput(OpenIMISMutation.Input):
     # Frequência escolar
     classe_que_frequenta_id = graphene.String(required=False)  # FK para Classe
     aproveitamento_primeiro_trimestre = graphene.String(required=False)
-    faixa_de_faltas = graphene.String(required=False)
+    faixa_de_faltas = graphene.Field(FaixaDeFaltasEnum, required=False)
 
     # Disciplinas (lista de IDs de Disciplina — substitui tudo)
     disciplinas_ids = graphene.List(graphene.String, required=False)
