@@ -21,17 +21,32 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             sql="""
-                -- Step 1: delete duplicate active renewals, keep the most recent per policy
-                DELETE FROM "tblPolicyRenewals"
-                WHERE "RenewalID" NOT IN (
-                    SELECT MAX("RenewalID")
+                -- Identify duplicate active renewal IDs (all except the highest per policy)
+                -- Step 1: delete child details that belong to duplicate renewals first (FK safety)
+                DELETE FROM "tblPolicyRenewalDetails"
+                WHERE "RenewalID" IN (
+                    SELECT "RenewalID"
                     FROM "tblPolicyRenewals"
                     WHERE "ValidityTo" IS NULL
-                    GROUP BY "PolicyID"
-                )
-                AND "ValidityTo" IS NULL;
+                      AND "RenewalID" NOT IN (
+                          SELECT MAX("RenewalID")
+                          FROM "tblPolicyRenewals"
+                          WHERE "ValidityTo" IS NULL
+                          GROUP BY "PolicyID"
+                      )
+                );
 
-                -- Step 2: create partial unique index if it does not exist
+                -- Step 2: now safe to delete the duplicate parent renewals
+                DELETE FROM "tblPolicyRenewals"
+                WHERE "ValidityTo" IS NULL
+                  AND "RenewalID" NOT IN (
+                      SELECT MAX("RenewalID")
+                      FROM "tblPolicyRenewals"
+                      WHERE "ValidityTo" IS NULL
+                      GROUP BY "PolicyID"
+                  );
+
+                -- Step 3: create partial unique index if it does not exist
                 DO $$
                 BEGIN
                     IF NOT EXISTS (

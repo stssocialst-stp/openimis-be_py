@@ -39,4 +39,5 @@ pep_plus/migrations/0019_relatorio_dist_encaminhamento.py
 pep_plus/migrations/0020_add_ano_registo_moduloeducacional.py
 pep_plus/migrations/0021_add_legacy_id_coordenacao_aluno.py
 pep_plus/migrations/0022_add_participantes_manuais_roteiro_reuniao.py
+pep_plus/migrations/0023_fix_policy_renewal_duplicates.py
 pep_plus/migrations/__init__.py
