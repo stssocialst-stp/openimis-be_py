@@ -3,10 +3,31 @@ from django.apps import AppConfig
 MODULE_NAME = "pep_plus"
 
 DEFAULT_CONFIG = {
-    "gql_query_pep_sessions_perms": ["159001"],
-    "gql_mutation_create_pep_session_perms": ["159002"],
-    "gql_mutation_update_pep_session_perms": ["159003"],
-    "gql_mutation_delete_pep_session_perms": ["159004"],
+    "gql_query_pep_perms":                            ["159001"],
+    "gql_mutation_manage_modulo_pep_perms":            ["159011"],
+    "gql_mutation_manage_escola_perms":                ["159012"],
+    "gql_mutation_manage_disciplina_perms":            ["159013"],
+    "gql_mutation_manage_tipo_encaminhamento_perms":   ["159014"],
+    "gql_mutation_create_sessao_pep_perms":            ["159021"],
+    "gql_mutation_update_sessao_pep_perms":            ["159022"],
+    "gql_mutation_delete_sessao_pep_perms":            ["159023"],
+    "gql_mutation_manage_presenca_sessao_perms":       ["159031"],
+    "gql_mutation_delete_presenca_sessao_perms":       ["159032"],
+    "gql_mutation_manage_execucao_sessao_perms":       ["159041"],
+    "gql_mutation_manage_supervisao_sessao_perms":     ["159051"],
+    "gql_mutation_manage_modulo_educacional_perms":    ["159061"],
+    "gql_mutation_delete_modulo_educacional_perms":    ["159062"],
+    "gql_mutation_manage_grupo_familiar_perms":        ["159071"],
+    "gql_mutation_delete_grupo_familiar_perms":        ["159072"],
+    "gql_mutation_manage_relatorio_distrital_perms":   ["159081"],
+    "gql_mutation_delete_relatorio_distrital_perms":   ["159082"],
+    "gql_mutation_manage_roteiro_reuniao_perms":       ["159091"],
+    "gql_mutation_delete_roteiro_reuniao_perms":       ["159092"],
+    "gql_mutation_manage_relatorio_supervisao_perms":  ["159101"],
+    "gql_mutation_delete_relatorio_supervisao_perms":  ["159102"],
+    "gql_mutation_manage_encaminhamento_perms":        ["159111"],
+    "gql_mutation_manage_coordenacao_distrital_perms": ["159121"],
+    "gql_mutation_delete_coordenacao_distrital_perms": ["159122"],
 }
 
 
@@ -14,14 +35,38 @@ class PepPlusConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = MODULE_NAME
 
+    # Right IDs — padrão openIMIS, usados em services.py e registados em modulesPermissions
+    gql_query_pep_perms                            = ["159001"]
+    gql_mutation_manage_modulo_pep_perms           = ["159011"]
+    gql_mutation_manage_escola_perms               = ["159012"]
+    gql_mutation_manage_disciplina_perms           = ["159013"]
+    gql_mutation_manage_tipo_encaminhamento_perms  = ["159014"]
+    gql_mutation_create_sessao_pep_perms           = ["159021"]
+    gql_mutation_update_sessao_pep_perms           = ["159022"]
+    gql_mutation_delete_sessao_pep_perms           = ["159023"]
+    gql_mutation_manage_presenca_sessao_perms      = ["159031"]
+    gql_mutation_delete_presenca_sessao_perms      = ["159032"]
+    gql_mutation_manage_execucao_sessao_perms      = ["159041"]
+    gql_mutation_manage_supervisao_sessao_perms    = ["159051"]
+    gql_mutation_manage_modulo_educacional_perms   = ["159061"]
+    gql_mutation_delete_modulo_educacional_perms   = ["159062"]
+    gql_mutation_manage_grupo_familiar_perms       = ["159071"]
+    gql_mutation_delete_grupo_familiar_perms       = ["159072"]
+    gql_mutation_manage_relatorio_distrital_perms  = ["159081"]
+    gql_mutation_delete_relatorio_distrital_perms  = ["159082"]
+    gql_mutation_manage_roteiro_reuniao_perms      = ["159091"]
+    gql_mutation_delete_roteiro_reuniao_perms      = ["159092"]
+    gql_mutation_manage_relatorio_supervisao_perms = ["159101"]
+    gql_mutation_delete_relatorio_supervisao_perms = ["159102"]
+    gql_mutation_manage_encaminhamento_perms       = ["159111"]
+    gql_mutation_manage_coordenacao_distrital_perms= ["159121"]
+    gql_mutation_delete_coordenacao_distrital_perms= ["159122"]
+
     def ready(self):
-        # Only load configuration after migrations are complete
-        # Avoid database access during initial migrations
         from django.db import connection
         from django.db.utils import OperationalError, ProgrammingError
 
         try:
-            # Check if tables exist before trying to access ModuleConfiguration
             with connection.cursor() as cursor:
                 cursor.execute(
                     "SELECT 1 FROM information_schema.tables WHERE table_name = 'core_ModuleConfiguration' LIMIT 1"
@@ -30,7 +75,6 @@ class PepPlusConfig(AppConfig):
 
             if table_exists:
                 from core.models import ModuleConfiguration
-                cfg = ModuleConfiguration.get_or_default(self.name, DEFAULT_CONFIG)
+                ModuleConfiguration.get_or_default(self.name, DEFAULT_CONFIG)
         except (OperationalError, ProgrammingError):
-            # Tables don't exist yet, skip configuration loading
             pass

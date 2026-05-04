@@ -1849,6 +1849,124 @@ class RemoveTecnicoOperacionalMutation(OpenIMISMutation):
             return [{'message': str(exc), 'detail': str(exc)}]
 
 
+# =============================================================================
+# GESTÃO GERAL DE ROLES / PERMISSÕES
+# =============================================================================
+
+class PermissaoMutationOutput(graphene.ObjectType):
+    ok = graphene.Boolean(required=True)
+    errors = graphene.List(graphene.String)
+
+
+class AdicionarPermissaoAoRoleMutation(graphene.Mutation):
+    """Adds a single right to a role without replacing existing rights."""
+
+    class Arguments:
+        role_id = graphene.ID(required=True)
+        right_id = graphene.Int(required=True)
+
+    Output = PermissaoMutationOutput
+
+    @classmethod
+    def mutate(cls, root, info, role_id, right_id):
+        from .services import RolePermissaoService
+        from django.core.exceptions import ValidationError, PermissionDenied
+        user = info.context.user
+        try:
+            RolePermissaoService.adicionar_permissao_ao_role(int(role_id), right_id, user)
+            return PermissaoMutationOutput(ok=True)
+        except PermissionDenied as exc:
+            return PermissaoMutationOutput(ok=False, errors=[str(exc)])
+        except ValidationError as exc:
+            msgs = [m['message'] for m in exc.message_dict.get('__all__', exc.messages)] \
+                if hasattr(exc, 'message_dict') else [str(m) for m in exc.messages]
+            return PermissaoMutationOutput(ok=False, errors=msgs)
+        except Exception as exc:
+            return PermissaoMutationOutput(ok=False, errors=[str(exc)])
+
+
+class RemoverPermissaoDoRoleMutation(graphene.Mutation):
+    """Soft-deletes a single right from a role."""
+
+    class Arguments:
+        role_id = graphene.ID(required=True)
+        right_id = graphene.Int(required=True)
+
+    Output = PermissaoMutationOutput
+
+    @classmethod
+    def mutate(cls, root, info, role_id, right_id):
+        from .services import RolePermissaoService
+        from django.core.exceptions import ValidationError, PermissionDenied
+        user = info.context.user
+        try:
+            RolePermissaoService.remover_permissao_do_role(int(role_id), right_id, user)
+            return PermissaoMutationOutput(ok=True)
+        except PermissionDenied as exc:
+            return PermissaoMutationOutput(ok=False, errors=[str(exc)])
+        except ValidationError as exc:
+            msgs = [m['message'] for m in exc.message_dict.get('__all__', exc.messages)] \
+                if hasattr(exc, 'message_dict') else [str(m) for m in exc.messages]
+            return PermissaoMutationOutput(ok=False, errors=msgs)
+        except Exception as exc:
+            return PermissaoMutationOutput(ok=False, errors=[str(exc)])
+
+
+class AtribuirRoleAoUtilizadorMutation(graphene.Mutation):
+    """Assigns a role to an InteractiveUser without replacing other roles."""
+
+    class Arguments:
+        user_id = graphene.ID(required=True, description="PK do InteractiveUser")
+        role_id = graphene.ID(required=True)
+
+    Output = PermissaoMutationOutput
+
+    @classmethod
+    def mutate(cls, root, info, user_id, role_id):
+        from .services import RolePermissaoService
+        from django.core.exceptions import ValidationError, PermissionDenied
+        user = info.context.user
+        try:
+            RolePermissaoService.atribuir_role_ao_utilizador(int(user_id), int(role_id), user)
+            return PermissaoMutationOutput(ok=True)
+        except PermissionDenied as exc:
+            return PermissaoMutationOutput(ok=False, errors=[str(exc)])
+        except ValidationError as exc:
+            msgs = [m['message'] for m in exc.message_dict.get('__all__', exc.messages)] \
+                if hasattr(exc, 'message_dict') else [str(m) for m in exc.messages]
+            return PermissaoMutationOutput(ok=False, errors=msgs)
+        except Exception as exc:
+            return PermissaoMutationOutput(ok=False, errors=[str(exc)])
+
+
+class RemoverRoleDoUtilizadorMutation(graphene.Mutation):
+    """Soft-deletes a UserRole entry (removes role from user)."""
+
+    class Arguments:
+        user_id = graphene.ID(required=True, description="PK do InteractiveUser")
+        role_id = graphene.ID(required=True)
+
+    Output = PermissaoMutationOutput
+
+    @classmethod
+    def mutate(cls, root, info, user_id, role_id):
+        from .services import RolePermissaoService
+        from django.core.exceptions import ValidationError, PermissionDenied
+        user = info.context.user
+        try:
+            RolePermissaoService.remover_role_do_utilizador(int(user_id), int(role_id), user)
+            return PermissaoMutationOutput(ok=True)
+        except PermissionDenied as exc:
+            return PermissaoMutationOutput(ok=False, errors=[str(exc)])
+        except ValidationError as exc:
+            msgs = [m['message'] for m in exc.message_dict.get('__all__', exc.messages)] \
+                if hasattr(exc, 'message_dict') else [str(m) for m in exc.messages]
+            return PermissaoMutationOutput(ok=False, errors=msgs)
+        except Exception as exc:
+            return PermissaoMutationOutput(ok=False, errors=[str(exc)])
+
+
+# =============================================================================
 # ROOT MUTATION
 # =============================================================================
 
@@ -1946,3 +2064,9 @@ class Mutation(graphene.ObjectType):
     delete_coordenacao_distrital = DeleteCoordenacaoDistritalMutation.Field()
     add_tecnico_operacional = AddTecnicoOperacionalMutation.Field()
     remove_tecnico_operacional = RemoveTecnicoOperacionalMutation.Field()
+
+    # ---- Gestão geral de roles/permissões ----
+    adicionar_permissao_ao_role = AdicionarPermissaoAoRoleMutation.Field()
+    remover_permissao_do_role = RemoverPermissaoDoRoleMutation.Field()
+    atribuir_role_ao_utilizador = AtribuirRoleAoUtilizadorMutation.Field()
+    remover_role_do_utilizador = RemoverRoleDoUtilizadorMutation.Field()

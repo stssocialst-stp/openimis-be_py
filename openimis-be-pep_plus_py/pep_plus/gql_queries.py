@@ -543,8 +543,48 @@ class PreviewRelatorioDistritalType(graphene.ObjectType):
     media_familia_esperada = graphene.Float()
 
 
+# =============================================================================
+# GQL TYPES — ROLES / PERMISSIONS (global scope)
+# =============================================================================
+
+class PermissaoGQLType(graphene.ObjectType):
+    """A single permission entry discovered from any installed module."""
+    right_id = graphene.Int()
+    nome = graphene.String()
+    modulo = graphene.String()
+
+
+class RoleSimpleGQLType(graphene.ObjectType):
+    """Minimal role representation (id + name)."""
+    id = graphene.ID()
+    nome = graphene.String()
+
+
+class RoleRightSimpleGQLType(graphene.ObjectType):
+    """Minimal RoleRight representation."""
+    id = graphene.ID()
+    right_id = graphene.Int()
+
+
 class Query(graphene.ObjectType):
     """Root Query for PEP+ module"""
+
+    # ---- Gestão de roles/permissões (âmbito global) ----
+    permissoes_disponiveis = graphene.List(
+        PermissaoGQLType,
+        modulo=graphene.String(description="Filtrar por nome do módulo (ex: 'pep_plus')"),
+        description="Lista todas as permissões declaradas nos módulos instalados.",
+    )
+    permissoes_do_role = graphene.List(
+        RoleRightSimpleGQLType,
+        role_id=graphene.ID(required=True),
+        description="Lista os right IDs activos atribuídos a um role.",
+    )
+    roles_do_utilizador = graphene.List(
+        RoleSimpleGQLType,
+        user_id=graphene.ID(required=True, description="PK do InteractiveUser"),
+        description="Lista os roles activos de um utilizador.",
+    )
 
     # ---- Parametrização: ModuloPEP ----
     modulo_pep = graphene.relay.Node.Field(ModuloPEPGQLType)
@@ -877,3 +917,22 @@ class Query(graphene.ObjectType):
         return CoordenacaoDistrital.objects.filter(validity_to__isnull=True).select_related(
             'distrito', 'coordenador', 'tecnico_administrativo'
         ).prefetch_related('tecnicos_operacionais__tecnico')
+
+    # ---- Roles / Permissions ----
+
+    def resolve_permissoes_disponiveis(self, info, modulo=None, **kwargs):
+        from .services import RolePermissaoService
+        entries = RolePermissaoService.listar_permissoes_disponiveis(modulo=modulo)
+        return [PermissaoGQLType(**e) for e in entries]
+
+    def resolve_permissoes_do_role(self, info, role_id, **kwargs):
+        from .services import RolePermissaoService
+        user = info.context.user
+        rows = RolePermissaoService.listar_permissoes_do_role(int(role_id), user)
+        return [RoleRightSimpleGQLType(id=rr.pk, right_id=rr.right_id) for rr in rows]
+
+    def resolve_roles_do_utilizador(self, info, user_id, **kwargs):
+        from .services import RolePermissaoService
+        user = info.context.user
+        rows = RolePermissaoService.listar_roles_do_utilizador(int(user_id), user)
+        return [RoleSimpleGQLType(id=ur.role_id, nome=ur.role.name) for ur in rows]

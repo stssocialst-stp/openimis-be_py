@@ -21,6 +21,7 @@ from .validations import (
     validate_relatorio_distrital, validate_encaminhamento,
     validate_modulo_educacional, validate_grupo_familiar
 )
+from .apps import PepPlusConfig
 
 
 def parse_json_field(value, default=None):
@@ -50,7 +51,7 @@ class ModuloPEPService(BaseService):
 
     @classmethod
     def create(cls, data, user):
-        if not user.has_perms(['pep_plus.add_modulopep']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_modulo_pep_perms):
             raise PermissionDenied("User does not have permission to create ModuloPEP records")
 
         with transaction.atomic():
@@ -73,7 +74,7 @@ class ModuloPEPService(BaseService):
         except ModuloPEP.DoesNotExist:
             raise ValidationError([{'message': 'ModuloPEP not found'}])
 
-        if not user.has_perms(['pep_plus.change_modulopep']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_modulo_pep_perms):
             raise PermissionDenied("User does not have permission to update ModuloPEP records")
 
         with transaction.atomic():
@@ -100,7 +101,7 @@ class ModuloPEPService(BaseService):
         except ModuloPEP.DoesNotExist:
             raise ValidationError([{'message': 'ModuloPEP not found'}])
 
-        if not user.has_perms(['pep_plus.delete_modulopep']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_modulo_pep_perms):
             raise PermissionDenied("User does not have permission to delete ModuloPEP records")
 
         with transaction.atomic():
@@ -115,7 +116,7 @@ class EscolaService(BaseService):
 
     @classmethod
     def create(cls, data, user):
-        if not user.has_perms(['pep_plus.add_escola']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_escola_perms):
             raise PermissionDenied("User does not have permission to create Escola records")
 
         with transaction.atomic():
@@ -138,7 +139,7 @@ class EscolaService(BaseService):
         except Escola.DoesNotExist:
             raise ValidationError([{'message': 'Escola not found'}])
 
-        if not user.has_perms(['pep_plus.change_escola']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_escola_perms):
             raise PermissionDenied("User does not have permission to update Escola records")
 
         with transaction.atomic():
@@ -165,7 +166,7 @@ class EscolaService(BaseService):
         except Escola.DoesNotExist:
             raise ValidationError([{'message': 'Escola not found'}])
 
-        if not user.has_perms(['pep_plus.delete_escola']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_escola_perms):
             raise PermissionDenied("User does not have permission to delete Escola records")
 
         with transaction.atomic():
@@ -198,7 +199,7 @@ class ClasseService(BaseService):
 
     @classmethod
     def create(cls, data, user):
-        if not user.has_perms(['pep_plus.add_classe']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_escola_perms):
             raise PermissionDenied("User does not have permission to create Classe records")
 
         disciplinas_ids = data.pop('disciplinas_ids', None)
@@ -223,7 +224,7 @@ class ClasseService(BaseService):
         except Classe.DoesNotExist:
             raise ValidationError([{'message': 'Classe not found'}])
 
-        if not user.has_perms(['pep_plus.change_classe']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_escola_perms):
             raise PermissionDenied("User does not have permission to update Classe records")
 
         disciplinas_ids = data.pop('disciplinas_ids', None)
@@ -251,7 +252,7 @@ class ClasseService(BaseService):
         except Classe.DoesNotExist:
             raise ValidationError([{'message': 'Classe not found'}])
 
-        if not user.has_perms(['pep_plus.delete_classe']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_escola_perms):
             raise PermissionDenied("User does not have permission to delete Classe records")
 
         with transaction.atomic():
@@ -266,7 +267,7 @@ class DisciplinaService(BaseService):
 
     @classmethod
     def create(cls, data, user):
-        if not user.has_perms(['pep_plus.add_disciplina']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_disciplina_perms):
             raise PermissionDenied("User does not have permission to create Disciplina records")
 
         with transaction.atomic():
@@ -288,7 +289,7 @@ class DisciplinaService(BaseService):
         except Disciplina.DoesNotExist:
             raise ValidationError([{'message': 'Disciplina not found'}])
 
-        if not user.has_perms(['pep_plus.change_disciplina']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_disciplina_perms):
             raise PermissionDenied("User does not have permission to update Disciplina records")
 
         with transaction.atomic():
@@ -313,7 +314,7 @@ class DisciplinaService(BaseService):
         except Disciplina.DoesNotExist:
             raise ValidationError([{'message': 'Disciplina not found'}])
 
-        if not user.has_perms(['pep_plus.delete_disciplina']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_disciplina_perms):
             raise PermissionDenied("User does not have permission to delete Disciplina records")
 
         with transaction.atomic():
@@ -328,7 +329,7 @@ class TipoEncaminhamentoService(BaseService):
 
     @classmethod
     def create(cls, data, user):
-        if not user.has_perms(['pep_plus.add_tipoencaminhamento']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_tipo_encaminhamento_perms):
             raise PermissionDenied("User does not have permission to create TipoEncaminhamento records")
 
         with transaction.atomic():
@@ -349,7 +350,7 @@ class TipoEncaminhamentoService(BaseService):
         except TipoEncaminhamento.DoesNotExist:
             raise ValidationError([{'message': 'TipoEncaminhamento not found'}])
 
-        if not user.has_perms(['pep_plus.change_tipoencaminhamento']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_tipo_encaminhamento_perms):
             raise PermissionDenied("User does not have permission to update TipoEncaminhamento records")
 
         with transaction.atomic():
@@ -372,7 +373,7 @@ class TipoEncaminhamentoService(BaseService):
         except TipoEncaminhamento.DoesNotExist:
             raise ValidationError([{'message': 'TipoEncaminhamento not found'}])
 
-        if not user.has_perms(['pep_plus.delete_tipoencaminhamento']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_tipo_encaminhamento_perms):
             raise PermissionDenied("User does not have permission to delete TipoEncaminhamento records")
 
         with transaction.atomic():
@@ -421,7 +422,7 @@ class ModuloEducacionalService(BaseService):
         if errors:
             raise ValidationError(errors)
 
-        if not user.has_perms(['pep_plus.add_moduloeducacional']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_modulo_educacional_perms):
             raise PermissionDenied("User does not have permission to create school attendance records")
 
         disciplinas_ids = data.pop('disciplinas_ids', None)
@@ -467,7 +468,7 @@ class ModuloEducacionalService(BaseService):
         except ModuloEducacional.DoesNotExist:
             raise ValidationError([{'message': 'School attendance record not found'}])
 
-        if not user.has_perms(['pep_plus.change_moduloeducacional']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_modulo_educacional_perms):
             raise PermissionDenied("User does not have permission to update school attendance records")
 
         errors = validate_modulo_educacional(data)
@@ -533,7 +534,7 @@ class ModuloEducacionalService(BaseService):
         except ModuloEducacional.DoesNotExist:
             raise ValidationError([{'message': 'School attendance record not found'}])
 
-        if not user.has_perms(['pep_plus.delete_moduloeducacional']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_delete_modulo_educacional_perms):
             raise PermissionDenied("User does not have permission to delete school attendance records")
 
         with transaction.atomic():
@@ -582,7 +583,7 @@ class GrupoFamiliarService(BaseService):
         if errors:
             raise ValidationError(errors)
 
-        if not user.has_perms(['pep_plus.add_grupofamiliar']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_grupo_familiar_perms):
             raise PermissionDenied("User does not have permission to create family groups")
 
         with transaction.atomic():
@@ -609,7 +610,7 @@ class GrupoFamiliarService(BaseService):
         except GrupoFamiliar.DoesNotExist:
             raise ValidationError([{'message': 'Family group not found'}])
 
-        if not user.has_perms(['pep_plus.change_grupofamiliar']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_grupo_familiar_perms):
             raise PermissionDenied("User does not have permission to update family groups")
 
         with transaction.atomic():
@@ -629,7 +630,7 @@ class GrupoFamiliarService(BaseService):
         except GrupoFamiliar.DoesNotExist:
             raise ValidationError([{'message': 'Family group not found'}])
 
-        if not user.has_perms(['pep_plus.delete_grupofamiliar']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_delete_grupo_familiar_perms):
             raise PermissionDenied("User does not have permission to delete family groups")
 
         with transaction.atomic():
@@ -648,7 +649,7 @@ class SessaoPEPService(BaseService):
         if errors:
             raise ValidationError(errors)
 
-        if not user.has_perms(['pep_plus.add_sessaopep']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_create_sessao_pep_perms):
             raise PermissionDenied("User does not have permission to create PEP sessions")
 
         with transaction.atomic():
@@ -683,7 +684,7 @@ class SessaoPEPService(BaseService):
         except SessaoPEP.DoesNotExist:
             raise ValidationError([{'message': 'PEP session not found'}])
 
-        if not user.has_perms(['pep_plus.change_sessaopep']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_update_sessao_pep_perms):
             raise PermissionDenied("User does not have permission to update PEP sessions")
 
         errors = validate_sessao_planeamento(data)
@@ -719,7 +720,7 @@ class SessaoPEPService(BaseService):
         except SessaoPEP.DoesNotExist:
             raise ValidationError([{'message': 'PEP session not found'}])
 
-        if not user.has_perms(['pep_plus.delete_sessaopep']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_delete_sessao_pep_perms):
             raise PermissionDenied("User does not have permission to delete PEP sessions")
 
         with transaction.atomic():
@@ -728,7 +729,7 @@ class SessaoPEPService(BaseService):
 
     @classmethod
     def create_multiple(cls, sessions_list, user):
-        if not user.has_perms(['pep_plus.add_sessaopep']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_create_sessao_pep_perms):
             raise PermissionDenied("User does not have permission to create PEP sessions")
 
         with transaction.atomic():
@@ -766,7 +767,7 @@ class SessaoPEPService(BaseService):
 
     @classmethod
     def update_multiple(cls, sessions_list, user):
-        if not user.has_perms(['pep_plus.change_sessaopep']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_update_sessao_pep_perms):
             raise PermissionDenied("User does not have permission to update PEP sessions")
 
         with transaction.atomic():
@@ -834,7 +835,7 @@ class PresencaSessaoService(BaseService):
         if errors:
             raise ValidationError(errors)
 
-        if not user.has_perms(['pep_plus.add_presencasessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_presenca_sessao_perms):
             raise PermissionDenied("User does not have permission to create attendance records")
 
         with transaction.atomic():
@@ -859,7 +860,7 @@ class PresencaSessaoService(BaseService):
         except PresencaSessao.DoesNotExist:
             raise ValidationError([{'message': 'Attendance record not found'}])
 
-        if not user.has_perms(['pep_plus.change_presencasessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_presenca_sessao_perms):
             raise PermissionDenied("User does not have permission to update attendance records")
 
         with transaction.atomic():
@@ -878,7 +879,7 @@ class PresencaSessaoService(BaseService):
         except PresencaSessao.DoesNotExist:
             raise ValidationError([{'message': 'Attendance record not found'}])
 
-        if not user.has_perms(['pep_plus.delete_presencasessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_delete_presenca_sessao_perms):
             raise PermissionDenied("User does not have permission to delete attendance records")
 
         with transaction.atomic():
@@ -887,7 +888,7 @@ class PresencaSessaoService(BaseService):
 
     @classmethod
     def register_multiple_attendances(cls, sessao_id, familias_list, user):
-        if not user.has_perms(['pep_plus.add_presencasessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_presenca_sessao_perms):
             raise PermissionDenied("User does not have permission to create attendance records")
 
         with transaction.atomic():
@@ -919,7 +920,7 @@ class PresencaSessaoService(BaseService):
         """Batch register attendance with session execution details (Ferramenta 2)"""
         from .models import SessaoPEP, ExecucaoSessao
 
-        if not user.has_perms(['pep_plus.add_presencasessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_presenca_sessao_perms):
             raise PermissionDenied("User does not have permission to create attendance records")
 
         try:
@@ -992,7 +993,7 @@ class ExecucaoSessaoService(BaseService):
         if errors:
             raise ValidationError(errors)
 
-        if not user.has_perms(['pep_plus.add_execucaosessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_execucao_sessao_perms):
             raise PermissionDenied("User does not have permission to create execution records")
 
         sessao_id = data['sessao_id']
@@ -1040,7 +1041,7 @@ class ExecucaoSessaoService(BaseService):
         except ExecucaoSessao.DoesNotExist:
             raise ValidationError([{'message': 'Execution record not found'}])
 
-        if not user.has_perms(['pep_plus.change_execucaosessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_execucao_sessao_perms):
             raise PermissionDenied("User does not have permission to update execution records")
 
         with transaction.atomic():
@@ -1075,7 +1076,7 @@ class SupervisaoSessaoService(BaseService):
         if errors:
             raise ValidationError(errors)
 
-        if not user.has_perms(['pep_plus.add_supervisaosessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_supervisao_sessao_perms):
             raise PermissionDenied("User does not have permission to create supervision records")
 
         with transaction.atomic():
@@ -1112,7 +1113,7 @@ class SupervisaoSessaoService(BaseService):
         except SupervisaoSessao.DoesNotExist:
             raise ValidationError([{'message': 'Supervision record not found'}])
 
-        if not user.has_perms(['pep_plus.change_supervisaosessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_supervisao_sessao_perms):
             raise PermissionDenied("User does not have permission to update supervision records")
 
         with transaction.atomic():
@@ -1312,7 +1313,7 @@ class RelatorioDistritalService(BaseService):
         if errors:
             raise ValidationError(errors)
 
-        if not user.has_perms(['pep_plus.add_relatoriodistritalbimestral']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_relatorio_distrital_perms):
             raise PermissionDenied("User does not have permission to create district reports")
 
         # Calcular tudo automaticamente; os valores passados explicitamente têm precedência
@@ -1379,7 +1380,7 @@ class RelatorioDistritalService(BaseService):
         except RelatorioDistritalBimestral.DoesNotExist:
             raise ValidationError([{'message': 'District report not found'}])
 
-        if not user.has_perms(['pep_plus.change_relatoriodistritalbimestral']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_relatorio_distrital_perms):
             raise PermissionDenied("User does not have permission to update district reports")
 
         with transaction.atomic():
@@ -1405,7 +1406,7 @@ class RelatorioDistritalService(BaseService):
         except RelatorioDistritalBimestral.DoesNotExist:
             raise ValidationError([{'message': 'District report not found'}])
 
-        if not user.has_perms(['pep_plus.delete_relatoriodistritalbimestral']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_delete_relatorio_distrital_perms):
             raise PermissionDenied("User does not have permission to delete district reports")
 
         with transaction.atomic():
@@ -1514,7 +1515,7 @@ class EncaminhamentoService(BaseService):
         if errors:
             raise ValidationError(errors)
 
-        if not user.has_perms(['pep_plus.add_encaminhamentosessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_encaminhamento_perms):
             raise PermissionDenied("User does not have permission to create referrals")
 
         with transaction.atomic():
@@ -1540,7 +1541,7 @@ class EncaminhamentoService(BaseService):
         except EncaminhamentoSessao.DoesNotExist:
             raise ValidationError([{'message': 'Referral not found'}])
 
-        if not user.has_perms(['pep_plus.change_encaminhamentosessao']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_encaminhamento_perms):
             raise PermissionDenied("User does not have permission to update referrals")
 
         with transaction.atomic():
@@ -1561,7 +1562,7 @@ class RoteiroReuniaoService(BaseService):
 
     @classmethod
     def create(cls, data, user):
-        if not user.has_perms(['pep_plus.add_roteioreuniaobimestral']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_roteiro_reuniao_perms):
             raise PermissionDenied("User does not have permission to create bimonthly meeting agendas")
 
         with transaction.atomic():
@@ -1590,7 +1591,7 @@ class RoteiroReuniaoService(BaseService):
         except RoteiroReuniaoBimestral.DoesNotExist:
             raise ValidationError([{'message': 'Bimonthly meeting agenda not found'}])
 
-        if not user.has_perms(['pep_plus.change_roteioreuniaobimestral']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_roteiro_reuniao_perms):
             raise PermissionDenied("User does not have permission to update bimonthly meeting agendas")
 
         with transaction.atomic():
@@ -1629,7 +1630,7 @@ class RoteiroReuniaoService(BaseService):
         except RoteiroReuniaoBimestral.DoesNotExist:
             raise ValidationError([{'message': 'Bimonthly meeting agenda not found'}])
 
-        if not user.has_perms(['pep_plus.delete_roteioreuniaobimestral']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_delete_roteiro_reuniao_perms):
             raise PermissionDenied("User does not have permission to delete bimonthly meeting agendas")
 
         with transaction.atomic():
@@ -1647,7 +1648,7 @@ class RelatorioSupervisaoService(BaseService):
     def create(cls, data, user):
         from .models import RelatorioSupervisaoBimestral
 
-        if not user.has_perms(['pep_plus.add_relatoriosupervisaobimestral']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_relatorio_supervisao_perms):
             raise PermissionDenied("User does not have permission to create bimonthly supervision reports")
 
         with transaction.atomic():
@@ -1676,7 +1677,7 @@ class RelatorioSupervisaoService(BaseService):
         except RelatorioSupervisaoBimestral.DoesNotExist:
             raise ValidationError([{'message': 'Bimonthly supervision report not found'}])
 
-        if not user.has_perms(['pep_plus.change_relatoriosupervisaobimestral']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_relatorio_supervisao_perms):
             raise PermissionDenied("User does not have permission to update bimonthly supervision reports")
 
         with transaction.atomic():
@@ -1713,7 +1714,7 @@ class RelatorioSupervisaoService(BaseService):
         except RelatorioSupervisaoBimestral.DoesNotExist:
             raise ValidationError([{'message': 'Bimonthly supervision report not found'}])
 
-        if not user.has_perms(['pep_plus.delete_relatoriosupervisaobimestral']):
+        if not user.has_perms(PepPlusConfig.gql_mutation_delete_relatorio_supervisao_perms):
             raise PermissionDenied("User does not have permission to delete bimonthly supervision reports")
 
         with transaction.atomic():
@@ -2066,3 +2067,194 @@ class CoordenacaoDistritalService:
         ).delete()
         if not deleted:
             raise ValidationError([{'message': 'Técnico não encontrado nesta coordenação'}])
+
+
+# =============================================================================
+# SERVIÇO GERAL DE GESTÃO DE ROLES E PERMISSÕES
+# =============================================================================
+
+class RolePermissaoService:
+    """
+    Operates on openIMIS tblRole / tblRoleRight / tblUserRole.
+    Scope is global (all modules), not restricted to PEP+.
+    Requires the same permission as updating a role: right 122003.
+    """
+
+    # Right ID 122003 = gql_mutation_update_roles_perms (CoreConfig)
+    _ROLE_ADMIN_PERMS = ["122003"]
+
+    @classmethod
+    def _check_permission(cls, user):
+        if user.is_anonymous:
+            raise PermissionDenied("authentication_required")
+        if not (user.is_imis_admin or user.has_perms(cls._ROLE_ADMIN_PERMS)):
+            raise PermissionDenied("unauthorized")
+
+    # ------------------------------------------------------------------
+    # Permissions catalogue
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def listar_permissoes_disponiveis(cls, modulo=None):
+        """
+        Returns all right IDs declared in every installed module's
+        DEFAULT_CONFIG (or DEFAULT_CFG), optionally filtered by module name.
+        Each entry: {'right_id': int, 'nome': str, 'modulo': str}
+        """
+        from django.conf import settings
+        from core.models import ModuleConfiguration
+        from core.utils import flatten_dict
+
+        excluded = {'django.contrib.admin', 'django.contrib.auth',
+                    'django.contrib.contenttypes', 'django.contrib.sessions',
+                    'django.contrib.messages', 'django.contrib.staticfiles'}
+
+        result = []
+        for app in settings.INSTALLED_APPS:
+            if app in excluded or app.startswith('django'):
+                continue
+            if modulo and app != modulo:
+                continue
+            try:
+                mod = __import__(f"{app}.apps")
+                has_cfg = hasattr(mod.apps, 'DEFAULT_CONFIG')
+                has_cfg_alt = hasattr(mod.apps, 'DEFAULT_CFG')
+                if not has_cfg and not has_cfg_alt:
+                    continue
+                raw = mod.apps.DEFAULT_CONFIG if has_cfg else mod.apps.DEFAULT_CFG
+                config_dict = ModuleConfiguration.get_or_default(app, raw)
+                config_dict = flatten_dict(config_dict)
+                for key, value in config_dict.items():
+                    if key.endswith('_perms') and isinstance(value, list):
+                        for right_id in value:
+                            result.append({
+                                'right_id': int(right_id),
+                                'nome': key,
+                                'modulo': app,
+                            })
+            except Exception:
+                continue
+        return result
+
+    # ------------------------------------------------------------------
+    # Role ↔ RoleRight
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def listar_permissoes_do_role(cls, role_id, user):
+        """Returns active RoleRight rows for the given role."""
+        cls._check_permission(user)
+        from core.models import RoleRight
+        return RoleRight.objects.filter(
+            role_id=role_id,
+            validity_to__isnull=True,
+        )
+
+    @classmethod
+    def adicionar_permissao_ao_role(cls, role_id, right_id, user):
+        """Idempotently adds right_id to role. Creates if not active."""
+        cls._check_permission(user)
+        from django.utils import timezone
+        from core.models import RoleRight, Role
+
+        try:
+            Role.objects.get(pk=role_id, validity_to__isnull=True)
+        except Role.DoesNotExist:
+            raise ValidationError([{'message': 'Role não encontrado'}])
+
+        existing = RoleRight.objects.filter(
+            role_id=role_id, right_id=right_id, validity_to__isnull=True
+        ).first()
+        if existing:
+            return existing
+
+        with transaction.atomic():
+            return RoleRight.objects.create(
+                role_id=role_id,
+                right_id=right_id,
+                audit_user_id=user.id_for_audit,
+                validity_from=timezone.now(),
+            )
+
+    @classmethod
+    def remover_permissao_do_role(cls, role_id, right_id, user):
+        """Soft-deletes the RoleRight entry (sets validity_to)."""
+        cls._check_permission(user)
+        from django.utils import timezone
+        from core.models import RoleRight
+
+        rr = RoleRight.objects.filter(
+            role_id=role_id, right_id=right_id, validity_to__isnull=True
+        ).first()
+        if not rr:
+            raise ValidationError([{'message': 'Permissão não encontrada no role'}])
+
+        with transaction.atomic():
+            rr.validity_to = timezone.now()
+            rr.audit_user_id = user.id_for_audit
+            rr.save()
+        return rr
+
+    # ------------------------------------------------------------------
+    # User ↔ UserRole
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def listar_roles_do_utilizador(cls, target_user_id, user):
+        """Returns active UserRole rows for the given InteractiveUser pk."""
+        cls._check_permission(user)
+        from core.models import UserRole
+        return UserRole.objects.filter(
+            user_id=target_user_id,
+            validity_to__isnull=True,
+        ).select_related('role')
+
+    @classmethod
+    def atribuir_role_ao_utilizador(cls, target_user_id, role_id, user):
+        """Idempotently assigns role to user without replacing other roles."""
+        cls._check_permission(user)
+        from django.utils import timezone
+        from core.models import UserRole, InteractiveUser, Role
+
+        try:
+            InteractiveUser.objects.get(pk=target_user_id, validity_to__isnull=True)
+        except InteractiveUser.DoesNotExist:
+            raise ValidationError([{'message': 'Utilizador não encontrado'}])
+
+        try:
+            Role.objects.get(pk=role_id, validity_to__isnull=True)
+        except Role.DoesNotExist:
+            raise ValidationError([{'message': 'Role não encontrado'}])
+
+        existing = UserRole.objects.filter(
+            user_id=target_user_id, role_id=role_id, validity_to__isnull=True
+        ).first()
+        if existing:
+            return existing
+
+        with transaction.atomic():
+            return UserRole.objects.create(
+                user_id=target_user_id,
+                role_id=role_id,
+                audit_user_id=user.id_for_audit,
+                validity_from=timezone.now(),
+            )
+
+    @classmethod
+    def remover_role_do_utilizador(cls, target_user_id, role_id, user):
+        """Soft-deletes the UserRole entry (sets validity_to)."""
+        cls._check_permission(user)
+        from django.utils import timezone
+        from core.models import UserRole
+
+        ur = UserRole.objects.filter(
+            user_id=target_user_id, role_id=role_id, validity_to__isnull=True
+        ).first()
+        if not ur:
+            raise ValidationError([{'message': 'Role não atribuído ao utilizador'}])
+
+        with transaction.atomic():
+            ur.validity_to = timezone.now()
+            ur.audit_user_id = user.id_for_audit
+            ur.save()
+        return ur
