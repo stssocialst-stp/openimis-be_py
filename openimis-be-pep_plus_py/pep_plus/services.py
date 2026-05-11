@@ -40,6 +40,22 @@ def parse_json_field(value, default=None):
     return default if default is not None else []
 
 
+def get_district_filter(user, field_prefix='distrito'):
+    """
+    Returns a dict filter restricting results to the user's assigned district.
+    Returns {} (no restriction) for admins or users with Coordenação Geral right (159121).
+    """
+    if user.is_imis_admin or user.has_perms(['159121']):
+        return {}
+    try:
+        ud = user.i_user.userdistrict_set.filter(validity_to__isnull=True).first()
+        if ud:
+            return {f'{field_prefix}_id': ud.location_id}
+    except Exception:
+        pass
+    return {}
+
+
 # =============================================================================
 # SERVIÇOS DE PARAMETRIZAÇÃO
 # =============================================================================
@@ -1840,6 +1856,10 @@ class AlunoService:
 
     @classmethod
     def create(cls, data, user):
+        if user.is_anonymous:
+            raise PermissionDenied("authentication_required")
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_modulo_educacional_perms):
+            raise PermissionDenied("unauthorized")
         # Remover campos de dados pessoais antes de processar (vão para Individual)
         individual = cls._get_or_create_individual(data, user)
 
@@ -1875,6 +1895,10 @@ class AlunoService:
 
     @classmethod
     def update(cls, aluno_id, data, user):
+        if user.is_anonymous:
+            raise PermissionDenied("authentication_required")
+        if not user.has_perms(PepPlusConfig.gql_mutation_manage_modulo_educacional_perms):
+            raise PermissionDenied("unauthorized")
         try:
             aluno = Aluno.objects.get(id=aluno_id, validity_to__isnull=True)
         except Aluno.DoesNotExist:
@@ -1908,6 +1932,10 @@ class AlunoService:
 
     @classmethod
     def delete(cls, aluno_id, user):
+        if user.is_anonymous:
+            raise PermissionDenied("authentication_required")
+        if not user.has_perms(PepPlusConfig.gql_mutation_delete_modulo_educacional_perms):
+            raise PermissionDenied("unauthorized")
         try:
             aluno = Aluno.objects.get(id=aluno_id, validity_to__isnull=True)
         except Aluno.DoesNotExist:

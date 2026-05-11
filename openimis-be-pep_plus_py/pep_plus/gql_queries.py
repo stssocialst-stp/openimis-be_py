@@ -801,18 +801,27 @@ class Query(graphene.ObjectType):
             qs = qs.filter(aluno__distrito_id=decode_id(distrito_id))
         if localidade_id:
             qs = qs.filter(aluno__localidade_id=decode_id(localidade_id))
+        from .services import get_district_filter
+        df = get_district_filter(info.context.user, field_prefix='aluno__distrito')
+        if df:
+            qs = qs.filter(**df)
         return qs
 
     def resolve_grupos_familiares(self, info, distrito_id=None, **kwargs):
         from .utils import decode_id
+        from .services import get_district_filter
         qs = GrupoFamiliar.objects.filter(validity_to__isnull=True).select_related(
             'distrito', 'localidade'
         )
         if distrito_id:
             qs = qs.filter(distrito_id=decode_id(distrito_id))
+        df = get_district_filter(info.context.user)
+        if df:
+            qs = qs.filter(**df)
         return qs
 
     def resolve_sessoes_pep(self, info, **kwargs):
+        from .services import get_district_filter
         queryset = SessaoPEP.objects.filter(validity_to__isnull=True).select_related(
             'coordenador_distrital',
             'tecnico_social',
@@ -822,6 +831,9 @@ class Query(graphene.ObjectType):
             'grupo_familia__distrito',
             'grupo_familia__localidade'
         )
+        df = get_district_filter(info.context.user)
+        if df:
+            queryset = queryset.filter(**df)
         total = queryset.count()
         logger.info(f"[PEP+] resolve_sessoes_pep: Found {total} sessions with validity_to IS NULL")
         all_sessions = SessaoPEP.objects.all().count()
@@ -829,7 +841,8 @@ class Query(graphene.ObjectType):
         return queryset
 
     def resolve_presencas_sessao(self, info, **kwargs):
-        return PresencaSessao.objects.filter(validity_to__isnull=True).select_related(
+        from .services import get_district_filter
+        qs = PresencaSessao.objects.filter(validity_to__isnull=True).select_related(
             'sessao',
             'sessao__coordenador_distrital',
             'sessao__tecnico_social',
@@ -837,14 +850,23 @@ class Query(graphene.ObjectType):
             'sessao__grupo_familia',
             'tipo_encaminhamento'
         )
+        df = get_district_filter(info.context.user, field_prefix='sessao__distrito')
+        if df:
+            qs = qs.filter(**df)
+        return qs
 
     def resolve_execucoes_sessao(self, info, **kwargs):
-        return ExecucaoSessao.objects.filter(validity_to__isnull=True).select_related(
+        from .services import get_district_filter
+        qs = ExecucaoSessao.objects.filter(validity_to__isnull=True).select_related(
             'sessao',
             'formador',
             'supervisor',
             'localidade'
         )
+        df = get_district_filter(info.context.user, field_prefix='sessao__distrito')
+        if df:
+            qs = qs.filter(**df)
+        return qs
 
     def resolve_supervisoes_sessao(self, info, **kwargs):
         return SupervisaoSessao.objects.filter(validity_to__isnull=True).select_related(
