@@ -418,7 +418,9 @@ class SessaoPEP(core_models.VersionedModel):
         settings.AUTH_USER_MODEL,
         db_column='TecnicoSocialID',
         on_delete=models.PROTECT,
-        related_name='sessoes_tecnico'
+        related_name='sessoes_tecnico',
+        null=True,
+        blank=True,
     )
     distrito = models.ForeignKey(Location, db_column='DistritoID', on_delete=models.PROTECT)
 
@@ -459,6 +461,35 @@ class SessaoPEP(core_models.VersionedModel):
 
     def __str__(self):
         return f"{self.codigo_sessao} - {self.data_sessao}"
+
+
+class SessaoPEPTecnico(models.Model):
+    """
+    Tabela intermediária — Técnicos Formadores de uma SessaoPEP.
+    Uma sessão pode ter vários técnicos formadores.
+    """
+    id = models.AutoField(db_column='SessaoPEPTecnicoID', primary_key=True)
+
+    sessao = models.ForeignKey(
+        SessaoPEP,
+        db_column='SessaoPEPID',
+        on_delete=models.CASCADE,
+        related_name='tecnicos_formadores',
+    )
+    tecnico = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        db_column='TecnicoID',
+        on_delete=models.PROTECT,
+        related_name='sessoes_como_tecnico_formador',
+    )
+
+    class Meta:
+        managed = True
+        db_table = 'tblSessaoPEPTecnico'
+        unique_together = [['sessao', 'tecnico']]
+
+    def __str__(self):
+        return f"{self.sessao} — Técnico: {self.tecnico}"
 
 
 class PresencaSessao(core_models.VersionedModel):

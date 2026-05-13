@@ -9,7 +9,7 @@ from core.services import BaseService
 from .models import (
     ModuloPEP, Escola, Classe, ClasseDisciplina, Disciplina, TipoEncaminhamento,
     Aluno, ModuloEducacional, ModuloEducacionalDisciplina,
-    GrupoFamiliar, SessaoPEP, PresencaSessao,
+    GrupoFamiliar, SessaoPEP, SessaoPEPTecnico, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao,
     RelatorioDistritalBimestral, RelatorioDistEncaminhamento,
     EncaminhamentoSessao, RoteiroReuniaoBimestral,
@@ -659,6 +659,21 @@ class SessaoPEPService(BaseService):
 
     OBJECT_TYPE = SessaoPEP
 
+    @staticmethod
+    def _get_tecnicos_ids(data):
+        ids = data.get('tecnicos_formadores_ids') or []
+        if not ids and data.get('tecnico_social_id'):
+            ids = [data['tecnico_social_id']]
+        return ids
+
+    @staticmethod
+    def _sync_tecnicos(sessao, tecnicos_ids):
+        SessaoPEPTecnico.objects.filter(sessao=sessao).delete()
+        for tid in tecnicos_ids:
+            SessaoPEPTecnico.objects.create(sessao=sessao, tecnico_id=tid)
+        sessao.tecnico_social_id = tecnicos_ids[0] if tecnicos_ids else None
+        sessao.save(update_fields=['tecnico_social_id'])
+
     @classmethod
     def create(cls, data, user):
         errors = validate_sessao_planeamento(data)
@@ -668,12 +683,14 @@ class SessaoPEPService(BaseService):
         if not user.has_perms(PepPlusConfig.gql_mutation_create_sessao_pep_perms):
             raise PermissionDenied("User does not have permission to create PEP sessions")
 
+        tecnicos_ids = cls._get_tecnicos_ids(data)
+
         with transaction.atomic():
             sessao = SessaoPEP.objects.create(
                 codigo_sessao=data['codigo_sessao'],
                 data_planejamento=data['data_planejamento'],
                 coordenador_distrital_id=data['coordenador_distrital_id'],
-                tecnico_social_id=data['tecnico_social_id'],
+                tecnico_social_id=tecnicos_ids[0] if tecnicos_ids else None,
                 distrito_id=data['distrito_id'],
                 modulo_id=data.get('modulo_id'),
                 mes_modulo_anterior=data.get('mes_modulo_anterior'),
@@ -691,6 +708,7 @@ class SessaoPEPService(BaseService):
             )
             sessao.audit_user_id = user.id_for_audit
             sessao.save()
+            cls._sync_tecnicos(sessao, tecnicos_ids)
             return sessao
 
     @classmethod
@@ -707,10 +725,13 @@ class SessaoPEPService(BaseService):
         if errors:
             raise ValidationError(errors)
 
+        tecnicos_ids = cls._get_tecnicos_ids(data) if (
+            'tecnicos_formadores_ids' in data or 'tecnico_social_id' in data
+        ) else None
+
         with transaction.atomic():
             sessao.data_planejamento = data.get('data_planejamento', sessao.data_planejamento)
             sessao.coordenador_distrital_id = data.get('coordenador_distrital_id', sessao.coordenador_distrital_id)
-            sessao.tecnico_social_id = data.get('tecnico_social_id', sessao.tecnico_social_id)
             sessao.distrito_id = data.get('distrito_id', sessao.distrito_id)
             sessao.modulo_id = data.get('modulo_id', sessao.modulo_id)
             sessao.mes_modulo_anterior = data.get('mes_modulo_anterior', sessao.mes_modulo_anterior)
@@ -727,6 +748,8 @@ class SessaoPEPService(BaseService):
             sessao.status = data.get('status', sessao.status)
             sessao.audit_user_id = user.id_for_audit
             sessao.save()
+            if tecnicos_ids is not None:
+                cls._sync_tecnicos(sessao, tecnicos_ids)
             return sessao
 
     @classmethod
@@ -755,11 +778,12 @@ class SessaoPEPService(BaseService):
                 if errors:
                     raise ValidationError(errors)
 
+                tecnicos_ids = cls._get_tecnicos_ids(session_data)
                 sessao = SessaoPEP.objects.create(
                     codigo_sessao=session_data['codigo_sessao'],
                     data_planejamento=session_data['data_planejamento'],
                     coordenador_distrital_id=session_data['coordenador_distrital_id'],
-                    tecnico_social_id=session_data['tecnico_social_id'],
+                    tecnico_social_id=tecnicos_ids[0] if tecnicos_ids else None,
                     distrito_id=session_data['distrito_id'],
                     modulo_id=session_data.get('modulo_id'),
                     mes_modulo_anterior=session_data.get('mes_modulo_anterior'),
@@ -777,6 +801,7 @@ class SessaoPEPService(BaseService):
                 )
                 sessao.audit_user_id = user.id_for_audit
                 sessao.save()
+                cls._sync_tecnicos(sessao, tecnicos_ids)
                 sessoes.append(sessao)
 
             return sessoes
@@ -802,8 +827,11 @@ class SessaoPEPService(BaseService):
                     sessao.data_planejamento = session_data['data_planejamento']
                 if 'coordenador_distrital_id' in session_data:
                     sessao.coordenador_distrital_id = session_data['coordenador_distrital_id']
-                if 'tecnico_social_id' in session_data:
-                    sessao.tecnico_social_id = session_data['tecnico_social_id']
+                _tecnicos_to_sync = None
+                if 'tecnicos_formadores_ids' in session_data or 'tecnico_social_id' in session_data:
+                    _tecnicos_to_sync = cls._get_tecnicos_ids(session_data)
+                    if _tecnicos_to_sync:
+                        sessao.tecnico_social_id = _tecnicos_to_sync[0]
                 if 'distrito_id' in session_data:
                     sessao.distrito_id = session_data['distrito_id']
                 if 'modulo_id' in session_data:
@@ -835,6 +863,8 @@ class SessaoPEPService(BaseService):
 
                 sessao.audit_user_id = user.id_for_audit
                 sessao.save()
+                if _tecnicos_to_sync is not None:
+                    cls._sync_tecnicos(sessao, _tecnicos_to_sync)
                 sessoes.append(sessao)
 
             return sessoes

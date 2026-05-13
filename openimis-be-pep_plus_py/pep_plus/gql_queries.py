@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 from .models import (
     ModuloPEP, Escola, Classe, ClasseDisciplina, Disciplina, TipoEncaminhamento,
     Aluno, ModuloEducacional, ModuloEducacionalDisciplina,
-    GrupoFamiliar, SessaoPEP, PresencaSessao,
+    GrupoFamiliar, SessaoPEP, SessaoPEPTecnico, PresencaSessao,
     ExecucaoSessao, SupervisaoSessao,
     RelatorioDistritalBimestral, RelatorioDistEncaminhamento,
     EncaminhamentoSessao, RoteiroReuniaoBimestral, RelatorioSupervisaoBimestral,
@@ -250,9 +250,13 @@ class SessaoPEPGQLType(DjangoObjectType):
 
     coordenador_distrital = graphene.Field(UserGQLType)
     tecnico_social = graphene.Field(UserGQLType)
+    tecnicos_formadores = graphene.List(UserGQLType)
     distrito = graphene.Field(LocationGQLType)
     grupo_familia = graphene.Field(GrupoFamiliarGQLType)
     modulo = graphene.Field(ModuloPEPGQLType)
+
+    def resolve_tecnicos_formadores(self, info):
+        return [st.tecnico for st in self.tecnicos_formadores.select_related('tecnico').all()]
 
     class Meta:
         model = SessaoPEP
@@ -830,7 +834,7 @@ class Query(graphene.ObjectType):
             'grupo_familia',
             'grupo_familia__distrito',
             'grupo_familia__localidade'
-        )
+        ).prefetch_related('tecnicos_formadores__tecnico')
         df = get_district_filter(info.context.user)
         if df:
             queryset = queryset.filter(**df)

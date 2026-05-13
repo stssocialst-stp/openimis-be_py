@@ -47,11 +47,11 @@ def validate_sessao_planeamento(data):
             'message': 'Data é obrigatória'
         })
 
-    # Técnico social obrigatório
-    if not data.get('tecnico_social_id'):
+    # Pelo menos um técnico formador obrigatório
+    if not data.get('tecnico_social_id') and not data.get('tecnicos_formadores_ids'):
         errors.append({
             'field': 'tecnico_social_id',
-            'message': 'Selecione pelo menos um técnico social'
+            'message': 'Selecione pelo menos um técnico formador'
         })
 
     # Distrito obrigatório

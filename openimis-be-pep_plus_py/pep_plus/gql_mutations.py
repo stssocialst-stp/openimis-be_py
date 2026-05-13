@@ -674,7 +674,9 @@ class CreateSessaoPEPInput(OpenIMISMutation.Input):
     codigo_sessao = graphene.String(required=True)
     data_planejamento = graphene.Date(required=True)
     coordenador_distrital_id = graphene.String(required=True)
-    tecnico_social_id = graphene.String(required=True)
+    tecnico_social_id = graphene.String(required=False)
+    tecnicos_formadores_ids = graphene.List(graphene.String, required=False,
+                                            description="Lista de IDs Relay dos Técnicos Formadores (substitui tecnico_social_id)")
     distrito_id = graphene.String(required=True)
     modulo_id = graphene.String(required=False)     # FK para ModuloPEP (substituiu nome_modulo)
     mes_modulo_anterior = graphene.String(required=False)
@@ -715,6 +717,8 @@ class UpdateSessaoPEPInput(OpenIMISMutation.Input):
     data_planejamento = graphene.Date(required=False)
     coordenador_distrital_id = graphene.String(required=False)
     tecnico_social_id = graphene.String(required=False)
+    tecnicos_formadores_ids = graphene.List(graphene.String, required=False,
+                                            description="Substitui todos os técnicos formadores da sessão")
     distrito_id = graphene.String(required=False)
     modulo_id = graphene.String(required=False)     # FK para ModuloPEP
     mes_modulo_anterior = graphene.String(required=False)
@@ -772,7 +776,9 @@ class SessaoPEPInputType(graphene.InputObjectType):
     codigo_sessao = graphene.String(required=True)
     data_planejamento = graphene.Date(required=True)
     coordenador_distrital_id = graphene.String(required=True)
-    tecnico_social_id = graphene.String(required=True)
+    tecnico_social_id = graphene.String(required=False)
+    tecnicos_formadores_ids = graphene.List(graphene.String, required=False,
+                                            description="Lista de IDs Relay dos Técnicos Formadores")
     distrito_id = graphene.String(required=True)
     modulo_id = graphene.String(required=False)
     mes_modulo_anterior = graphene.String(required=False)
@@ -815,6 +821,8 @@ class SessaoPEPUpdateInputType(graphene.InputObjectType):
     data_planejamento = graphene.Date(required=False)
     coordenador_distrital_id = graphene.String(required=False)
     tecnico_social_id = graphene.String(required=False)
+    tecnicos_formadores_ids = graphene.List(graphene.String, required=False,
+                                            description="Substitui todos os técnicos formadores da sessão")
     distrito_id = graphene.String(required=False)
     modulo_id = graphene.String(required=False)
     mes_modulo_anterior = graphene.String(required=False)
