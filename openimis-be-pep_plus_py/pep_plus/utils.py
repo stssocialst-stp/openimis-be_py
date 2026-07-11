@@ -118,6 +118,15 @@ def convert_ids_in_session_data(session_data):
 
             converted[field] = decoded
 
+    if converted.get('tecnicos_formadores_ids'):
+        decoded_list = []
+        for raw_id in converted['tecnicos_formadores_ids']:
+            decoded = decode_id(raw_id)
+            if isinstance(decoded, str) and '-' in decoded:
+                decoded = convert_uuid_to_id('tecnico_social_id', decoded)
+            decoded_list.append(decoded)
+        converted['tecnicos_formadores_ids'] = decoded_list
+
     return converted
 
 

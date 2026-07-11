@@ -43,4 +43,5 @@ pep_plus/migrations/0023_fix_policy_renewal_duplicates.py
 pep_plus/migrations/0024_seed_pep_roles.py
 pep_plus/migrations/0025_add_pep_roles_and_me_roles.py
 pep_plus/migrations/0026_seed_mrr_roles.py
+pep_plus/migrations/0027_add_sessao_pep_tecnicos.py
 pep_plus/migrations/__init__.py
