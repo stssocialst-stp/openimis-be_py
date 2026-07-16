@@ -636,6 +636,11 @@ OPENSEARCH_DSL = {
     }
 }
 
+# Disable auto-indexing signals when OpenSearch is not configured.
+# Without this, creating a Payroll fails with ConnectionError if OpenSearch is unreachable.
+if not os.environ.get("OPENSEARCH_HOST"):
+    OPENSEARCH_DSL_SIGNAL_PROCESSOR = 'django_opensearch_dsl.signals.BaseSignalProcessor'
+
 MEDIA_URL = "/file_storage/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "file_storage/")
 
