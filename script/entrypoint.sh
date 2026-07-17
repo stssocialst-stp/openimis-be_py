@@ -31,7 +31,13 @@ init(){
     pip install -e "$PEP_PLUS_PATH"
 
     # Add pep_plus to openimis config if not already there
-    CONF_FILE="${OPENIMIS_CONF_JSON:-/openimis-be/openimis.json}"
+    # Resolve to absolute path — kenon may set OPENIMIS_CONF_JSON as a bare filename
+    _raw_conf="${OPENIMIS_CONF_JSON:-/openimis-be/openimis.json}"
+    if [[ "$_raw_conf" != /* ]]; then
+      CONF_FILE="/openimis-be/$_raw_conf"
+    else
+      CONF_FILE="$_raw_conf"
+    fi
     echo "Adding pep_plus to $CONF_FILE..."
     python3 << EOF
 import json
@@ -124,6 +130,19 @@ except Exception as e:
     print(f"⚠️ Database check failed: {e}")
     print("⚠️ Will attempt migrations anyway...")
 CHECKEOF
+
+    # Wait for the database to be ready before migrating
+    DB_HOST_WAIT="${DB_HOST:-${PSQL_DB_HOST:-localhost}}"
+    DB_PORT_WAIT="${DB_PORT:-${PSQL_DB_PORT:-5432}}"
+    echo "Waiting for database at $DB_HOST_WAIT:$DB_PORT_WAIT..."
+    for i in $(seq 1 30); do
+      if python3 -c "import socket; socket.setdefaulttimeout(3); s=socket.socket(); s.connect(('$DB_HOST_WAIT', $DB_PORT_WAIT)); s.close()" 2>/dev/null; then
+        echo "✅ Database is reachable"
+        break
+      fi
+      echo "  attempt $i/30 — waiting 5s..."
+      sleep 5
+    done
 
     # Run migrations FIRST (before Django apps initialize)
     echo "Running migrations (standalone mode to avoid scheduler)..."
