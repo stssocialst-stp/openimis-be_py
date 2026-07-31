@@ -31,4 +31,5 @@ urlpatterns = [
         csrf_exempt(jwt_cookie(OpenIMISGraphQLView.as_view(graphiql=DEBUG))),
     ),
     url(r"^ht/", include("health_check.urls")),
+    path("%so/" % SITE_ROOT(), include('oauth2_provider.urls', namespace='oauth2_provider')),
 ] + openimis_urls()

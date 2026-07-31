@@ -168,7 +168,8 @@ INSTALLED_APPS = [
     "developer_tools",
     "drf_spectacular",  # Swagger UI for FHIR API
     "axes",
-    "django_opensearch_dsl"
+    "django_opensearch_dsl",
+    "oauth2_provider",
 ]
 INSTALLED_APPS += OPENIMIS_APPS
 INSTALLED_APPS += ["apscheduler_runner", "signal_binding"]  # Signal binding should be last installed module
@@ -663,6 +664,12 @@ PASSWORD_DIGITS = int(os.getenv('PASSWORD_DIGITS', 1))
 PASSWORD_SYMBOLS = int(os.getenv('PASSWORD_SYMBOLS', 1))
 
 IS_UNIT_TEST_ENV = 'test' in sys.argv
+
+OAUTH2_PROVIDER = {
+    'ACCESS_TOKEN_EXPIRE_SECONDS': int(os.environ.get('BISTP_OAUTH2_TOKEN_TTL', '3600')),
+    'ALLOWED_GRANT_TYPES': ['client_credentials'],
+    'SCOPES': {'callbacks': 'BISTP callback access'},
+}
 
 # Add PEP+ module for development (Docker path or local override via PEP_PLUS_PATH)
 _pep_plus_local = os.environ.get('PEP_PLUS_PATH', '')
