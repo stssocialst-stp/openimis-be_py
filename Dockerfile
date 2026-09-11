@@ -1,4 +1,4 @@
-FROM python:3.11-bullseye As builder
+FROM python:3.11-bookworm As builder
 ENV PYTHONUNBUFFERED 1
 ARG DB_DEFAULT
 ## No need to update sources.list for bullseye
