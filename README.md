@@ -576,6 +576,7 @@ This commands will build with the latest version of database. You can specify pa
 
 You can find more informations about seeting up db docker [here](https://github.com/openimis/openimis-db_dkr/tree/develop).
 
+# Sty
 ### Notes Sty
 
 ### How to report another issues?
