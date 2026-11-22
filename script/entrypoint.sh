@@ -205,6 +205,7 @@ case "$1" in
     gunicorn -b "$SERVER_IP:$SERVER_PORT" -w $SERVER_WORKERS "$SERVER_APPLICATION"
   ;;
   "worker" )
+    pip install "setuptools<82"
     echo "Starting Celery with url ${CELERY_BROKER_URL} ${DB_NAME}..."
     echo "Settings module: $DJANGO_SETTINGS_MODULE"
     celery -A openIMIS worker --loglevel=DEBUG
