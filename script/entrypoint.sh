@@ -28,7 +28,8 @@ init(){
 
   if [ -n "$PEP_PLUS_PATH" ]; then
     echo "Installing PEP+ module from $PEP_PLUS_PATH..."
-    pip install -e "$PEP_PLUS_PATH"
+    pip install "setuptools<82"
+    pip install --no-build-isolation -e "$PEP_PLUS_PATH"
 
     # Add pep_plus to openimis config if not already there
     # Resolve to absolute path — kenon may set OPENIMIS_CONF_JSON as a bare filename

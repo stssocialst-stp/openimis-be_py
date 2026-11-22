@@ -15,6 +15,7 @@ RUN test "$DB_DEFAULT" != "postgresql" && apt-get update || :
 RUN test "$DB_DEFAULT" != "postgresql" && ACCEPT_EULA=Y apt-get install -y msodbcsql17 mssql-tools || :
 
 RUN pip install --upgrade pip
+RUN pip install "setuptools<82"
 RUN test "$DB_DEFAULT" != "postgresql" && pip install mssql-cli || :
 
 RUN pip install gunicorn
