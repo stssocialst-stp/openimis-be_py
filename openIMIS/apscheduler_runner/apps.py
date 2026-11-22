@@ -1,6 +1,10 @@
 import logging
 
-from apscheduler.schedulers.background import BackgroundScheduler
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+except Exception:
+    BackgroundScheduler = None
+
 # from apscheduler.executors.pool import ProcessPoolExecutor, ThreadPoolExecutor
 from django.conf import settings
 from django.apps import AppConfig
@@ -23,6 +27,9 @@ class ApschedulerRunnerConfig(AppConfig):
             self._setup_scheduler_background_task()
 
     def _setup_scheduler_background_task(self):
+        if not BackgroundScheduler:
+            logger.warning("BackgroundScheduler could not be imported; skipping scheduled tasks setup")
+            return
         self.scheduler = BackgroundScheduler(deepcopy(settings.SCHEDULER_CONFIG))
         for app in settings.OPENIMIS_APPS:
             self.__add_module_tasks_to_scheduler(app)
