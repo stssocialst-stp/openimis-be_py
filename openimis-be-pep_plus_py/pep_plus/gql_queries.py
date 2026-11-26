@@ -177,6 +177,7 @@ class AlunoGQLType(DjangoObjectType):
             "classe_id": ["exact"],
             "classe_que_frequenta_id": ["exact"],
             "dados_escolares_correctos": ["exact"],
+            "ano_lectivo": ["exact"],
             "ativo": ["exact"],
         }
         connection_class = ExtendedConnection

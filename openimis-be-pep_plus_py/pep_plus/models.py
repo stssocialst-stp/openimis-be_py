@@ -1131,6 +1131,11 @@ class Aluno(core_models.VersionedModel):
     dados_escolares_correctos = models.BooleanField(
         db_column='DadosEscolaresCorrectos', null=True, blank=True
     )
+    # Ano lectivo a que se referem escola e classe (ex.: '2025-2026'); o histórico fica nas versões anteriores
+    ano_lectivo = models.CharField(
+        db_column='AnoLectivo', max_length=9, null=True, blank=True,
+        help_text='Ano lectivo dos dados escolares (ex: 2025-2026)'
+    )
 
     ativo = models.BooleanField(db_column='Ativo', default=True)
 
