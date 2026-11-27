@@ -780,8 +780,8 @@ class Query(graphene.ObjectType):
         if search:
             from django.db.models import Q
             qs = qs.filter(
-                Q(first_name__icontains=search)
-                | Q(last_name__icontains=search)
+                Q(individual__first_name__icontains=search)
+                | Q(individual__last_name__icontains=search)
                 | Q(id_da_crianca__icontains=search)
             )
         return qs
