@@ -630,7 +630,8 @@ class Query(graphene.ObjectType):
     aluno = graphene.relay.Node.Field(AlunoGQLType)
     alunos = OrderedDjangoFilterConnectionField(
         AlunoGQLType,
-        orderBy=graphene.List(of_type=graphene.String)
+        orderBy=graphene.List(of_type=graphene.String),
+        search=graphene.String(),
     )
 
     # ---- Educational Modules ----
@@ -769,13 +770,21 @@ class Query(graphene.ObjectType):
     def resolve_tipos_encaminhamento(self, info, **kwargs):
         return TipoEncaminhamento.objects.filter(validity_to__isnull=True)
 
-    def resolve_alunos(self, info, **kwargs):
-        return Aluno.objects.filter(validity_to__isnull=True).select_related(
+    def resolve_alunos(self, info, search=None, **kwargs):
+        qs = Aluno.objects.filter(validity_to__isnull=True).select_related(
             'individual',
             'distrito', 'localidade',
             'escola', 'escola_actual',
             'classe', 'classe_que_frequenta',
         )
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+                | Q(id_da_crianca__icontains=search)
+            )
+        return qs
 
     def resolve_modulos_educacionais(self, info,
                                       aluno_id=None,
